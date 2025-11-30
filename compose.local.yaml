@@ -1,0 +1,144 @@
+services:
+  loki:
+    image: grafana/loki:2.9.8
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./observability/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  grafana:
+    image: grafana/grafana:10.4.6
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_FEATURE_TOGGLES_ENABLE=grafanaAlerting
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    volumes:
+      - ./observability/promtail/config.yaml:/etc/promtail/config.yaml:ro
+      - ./logs/app:/var/log/app:ro
+    depends_on:
+      - loki
+  slack:
+    build:
+      context: sre_agent
+      dockerfile: servers/slack/Dockerfile
+    environment:
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_TEAM_ID=${SLACK_TEAM_ID}
+      - TRANSPORT=SSE
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3001"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  github:
+    build:
+      context: sre_agent
+      dockerfile: servers/github/Dockerfile
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}
+      - TRANSPORT=SSE
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3001"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  prompt-server:
+    build:
+      context: .
+      dockerfile: sre_agent/servers/prompt_server/Dockerfile
+    environment:
+      - GITHUB_ORGANISATION=${GITHUB_ORGANISATION}
+      - GITHUB_REPO_NAME=${GITHUB_REPO_NAME}
+      - PROJECT_ROOT=${PROJECT_ROOT}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  llm-server:
+    build:
+      context: .
+      dockerfile: sre_agent/llm/Dockerfile
+    environment:
+      - PROVIDER=${PROVIDER}
+      - MODEL=${MODEL}
+      - MAX_TOKENS=1000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  llama-firewall:
+    build:
+      context: .
+      dockerfile: sre_agent/firewall/Dockerfile
+    volumes:
+      - source: ~/.cache/huggingface
+        target: /root/.cache/huggingface
+        type: bind
+        bind:
+          create_host_path: true
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: sre_agent/client/Dockerfile
+    ports:
+      - "8003:80"
+    depends_on:
+      slack:
+        condition: service_healthy
+      github:
+        condition: service_healthy
+      prompt-server:
+        condition: service_healthy
+      llm-server:
+        condition: service_healthy
+    environment:
+      - DEV_BEARER_TOKEN=${DEV_BEARER_TOKEN}
+      - QUERY_TIMEOUT=300
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+      - TOOLS=${TOOLS}
+      - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID}
+      - SERVICES=${SERVICES}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ALERT_WEBHOOK_SECRET=${ALERT_WEBHOOK_SECRET}
+      - ALERT_COOLDOWN_SECONDS=${ALERT_COOLDOWN_SECONDS}
+      - QDRANT_URL=${QDRANT_URL:-http://qdrant:6333}
+      - GEMINI_EMBED_MODEL=${GEMINI_EMBED_MODEL:-text-embedding-004}
+      - ENABLED_SERVERS=${ENABLED_SERVERS}
+      - FIREWALL_ENABLED=false
+
+volumes:
+  qdrant_storage:
+
+

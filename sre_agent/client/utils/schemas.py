@@ -45,6 +45,31 @@ class MCPServer(StrEnum):
     GITHUB = "github"
     KUBERNETES = "kubernetes"
     PROMPT = "prompt-server"
+    SALESFORCE = "salesforce"
+
+
+def get_enabled_servers() -> list["MCPServer"]:
+    """Return the list of enabled MCP servers based on env var ENABLED_SERVERS.
+
+    If ENABLED_SERVERS is not set or empty/invalid, default to all servers
+    defined in MCPServer.
+    """
+    raw = os.getenv("ENABLED_SERVERS", "")
+    if not raw:
+        return list(MCPServer)
+
+    try:
+        names: list[str] = json.loads(raw)
+        enabled: list[MCPServer] = []
+        for name in names:
+            try:
+                enabled.append(MCPServer(name))
+            except ValueError:
+                logger.warning("Ignoring unknown MCP server '%s' in ENABLED_SERVERS", name)
+        return enabled or list(MCPServer)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Failed to parse ENABLED_SERVERS: %s", exc)
+        return list(MCPServer)
 
 
 @dataclass(frozen=True)
@@ -53,6 +78,7 @@ class AuthConfig:
 
     slack_signing_secret: str = os.getenv("SLACK_SIGNING_SECRET", "")
     dev_bearer_token: str = os.getenv("DEV_BEARER_TOKEN", "")
+    alert_webhook_secret: str = os.getenv("ALERT_WEBHOOK_SECRET", "")
 
     def __post_init__(self) -> None:
         """A post-constructor method for the dataclass."""

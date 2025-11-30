@@ -1,0 +1,83 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: salesforce-errors
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: salesforce-any-error
+        title: Salesforce Any Error
+        condition: C
+        for: 1m
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: -100
+            model:
+              datasource:
+                type: loki
+                uid: -100
+              editorMode: builder
+              expr: sum(count_over_time({service="salesforce", level="error"}[5m]))
+              queryType: range
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: 0
+              refId: B
+              type: math
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A > 0
+              type: math
+              refId: C
+        annotations:
+          summary: "Errors detected for service=salesforce in last 5m"
+        labels:
+          service: salesforce
+
+      - uid: promptbuilder-any-error
+        title: Promptbuilder Any Error
+        condition: C
+        for: 1m
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: -100
+            model:
+              datasource:
+                type: loki
+                uid: -100
+              editorMode: builder
+              expr: sum(count_over_time({service="promptbuilder", level="error"}[5m]))
+              queryType: range
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: 0
+              refId: B
+              type: math
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A > 0
+              type: math
+              refId: C
+        annotations:
+          summary: "Errors detected for service=promptbuilder in last 5m"
+        labels:
+          service: promptbuilder
+
+
+
+
+
+
+

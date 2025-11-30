@@ -2,21 +2,15 @@
     🚀 Site Reliability Engineer (SRE) Agent :detective:
 </h1>
 
-Welcome to the **SRE Agent** project! This open-source AI agent is here to assist your debugging, keep your systems healthy, and make your DevOps life a whole lot easier. Plug in your Kubernetes cluster, GitHub repo, and Slack, and let the agent do the heavy lifting—diagnosing, reporting, and keeping your team in the loop.
+Welcome to the **SRE Agent** project! This AI agent assists with debugging, keeps your systems healthy, and makes your DevOps life easier. Plug in your Kubernetes cluster, GitHub repo, and Slack, and let the agent do the heavy lifting—diagnosing, reporting, and keeping your team in the loop.
 
 ## 🌟 What is SRE Agent?
 
 SRE Agent is your AI-powered teammate for monitoring application and infrastructure logs, diagnosing issues, and reporting diagnostics after errors. It connects directly into your stack, so you can focus on building, not firefighting.
 
-![SRE Agent in action](https://github.com/user-attachments/assets/5ef19428-d650-405d-ba88-848aeef58fef)
+## 🤔 Why This Project?
 
-## 🤔 Why Did We Build This?
-
-We wanted to learn best practices, costs, security, and performance tips for AI agents in production. Our journey is open-source—check out our [Production Journey Page](/docs/production-journey.md) and [Agent Architecture Page](/docs/agent-architecture.md) for the full story.
-
-We've been writing blogs and sharing our learnings along the way. Check out our [blog](https://www.fuzzylabs.ai/blog) for insights and updates.
-
-> **Contributions welcome!** [Join us](CONTRIBUTING.md) and help shape the future of AI-powered SRE.
+This project explores best practices, costs, security, and performance considerations for AI agents in production. Check out the [Production Journey Page](/docs/production-journey.md) and [Agent Architecture Page](/docs/agent-architecture.md) for more details.
 
 ## ✨ Features
 
@@ -45,7 +39,8 @@ The SRE Agent supports multiple the following LLM providers:
 
 - [Docker](https://docs.docker.com/get-docker/)
 - A `.env` file in your project root ([see below](#getting-started))
-- An app deployed on AWS EKS (Elastic Kubernetes Service) or GCP GKE (Google Kubernetes Engine)
+- **Option A**: An app deployed on AWS EKS or GCP GKE (Kubernetes)
+- **Option B**: Any app that can write logs to a file (No Kubernetes required!)
 
 ## ⚡ Quick Start (5 minutes)
 
@@ -313,9 +308,7 @@ aws ecr get-login-password --region eu-west-2 | docker login --username AWS --pa
 
 ## 🚀 Deployments
 
-Want to run this in the cloud? Check out our deployment examples:
-
-- [EKS Deployment](https://github.com/fuzzylabs/sre-agent-deployment)
+Cloud deployment options are available for production use cases.
 
 ---
 
@@ -370,23 +363,427 @@ npm run build && npm run watch
 
 Find all the docs you need in the [docs](docs) folder:
 
-- [Creating an IAM Role](docs/creating-an-iam-role.md)
-- [ECR Setup Steps](docs/ecr-setup.md)
+- **[Executive Overview](docs/EXECUTIVE_OVERVIEW.md)** - Architecture, system design, and business value
 - [Agent Architecture](docs/agent-architecture.md)
 - [Production Journey](docs/production-journey.md)
 - [Credentials](docs/credentials.md)
+- [Creating an IAM Role](docs/creating-an-iam-role.md)
+- [ECR Setup Steps](docs/ecr-setup.md)
 - [Security Testing](docs/security-testing.md)
 
-## 🙏 Acknowledgements & Attribution
+---
 
-Big thanks to:
+## 🖥️ Local Development Setup (No Kubernetes)
 
-- [Suyog Sonwalkar](https://github.com/Flux159) for the [Kubernetes MCP server](/sre_agent/servers/mcp-server-kubernetes/)
-- [Anthropic's Model Context Protocol team](https://github.com/modelcontextprotocol) for the [Slack](/sre_agent/servers/slack/) and [GitHub](/sre_agent/servers/github/) MCP servers
+Don't use Kubernetes? No problem! You can connect **any application** to the SRE Agent using file-based logging.
 
-## :book: Blogs
+### Architecture Overview
 
-Check out our blog posts for insights and updates:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  YOUR APP (React, Node, Python, etc.)                           │
+│                                                                 │
+│  Error occurs → Logger catches → POST to Log Server             │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  LOG SERVER (Express, port 4000)                                │
+│                                                                 │
+│  Receives POST → Writes JSON to ./logs/app/app.log              │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  PROMTAIL (Docker)                                              │
+│                                                                 │
+│  Watches log file → Ships new lines to Loki                     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  LOKI (Docker, localhost:3100)                                  │
+│                                                                 │
+│  Stores logs → Makes them queryable                             │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  GRAFANA (Docker, localhost:3000)                               │
+│                                                                 │
+│  Every 1 min: "Any errors?" → YES → Fire webhook to SRE Agent  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  SRE AGENT (Docker, localhost:8003)                             │
+│                                                                 │
+│  Receives alert → Asks AI → AI searches GitHub → Posts to Slack │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  SLACK                                                          │
+│                                                                 │
+│  📣 "Here's what went wrong and how to fix it"                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- [Bringing Agentic AI into the Real World](https://www.fuzzylabs.ai/blog-post/bringing-agentic-ai-into-the-real-world)
-- [How We're Building an Autonomous SRE with FastMCP](https://www.fuzzylabs.ai/blog-post/how-were-building-an-autonomous-sre-with-fastmcp)
+### Step 1: Add Logging to Your App
+
+#### For JavaScript/React Apps
+
+Create a log server (`server/logger.js`):
+
+```javascript
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import cors from 'cors';
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const LOG_DIR = './logs/app';
+const LOG_FILE = path.join(LOG_DIR, 'app.log');
+
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+app.post('/log', (req, res) => {
+  const { level, message, stack, service } = req.body;
+  const logEntry = JSON.stringify({
+    ts: new Date().toISOString(),
+    level: level || 'error',
+    service: service || 'myapp',
+    msg: message,
+    stack: stack || ''
+  }) + '\n';
+  
+  fs.appendFileSync(LOG_FILE, logEntry);
+  res.json({ status: 'logged' });
+});
+
+app.listen(4000, () => console.log('Log server on :4000'));
+```
+
+Create a frontend logger (`src/utils/logger.js`):
+
+```javascript
+const LOG_SERVER = 'http://localhost:4000/log';
+
+export const logger = {
+  error: (message, error) => {
+    console.error(message, error);
+    fetch(LOG_SERVER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        level: 'error',
+        message: message,
+        stack: error?.stack || '',
+        service: 'myapp'
+      })
+    }).catch(() => {});
+  }
+};
+
+// Global error handlers
+window.onerror = (message, source, lineno, colno, error) => {
+  logger.error(`${message} at ${source}:${lineno}:${colno}`, error);
+};
+
+window.onunhandledrejection = (event) => {
+  logger.error('Unhandled Promise rejection', event.reason);
+};
+```
+
+#### For Python Apps
+
+```python
+import json
+import logging
+from datetime import datetime
+from pathlib import Path
+
+LOG_DIR = Path('./logs/app')
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+class JSONFileHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = {
+            'ts': datetime.utcnow().isoformat() + 'Z',
+            'level': record.levelname.lower(),
+            'service': 'myapp',
+            'msg': record.getMessage(),
+            'stack': record.exc_text or ''
+        }
+        with open(LOG_DIR / 'app.log', 'a') as f:
+            f.write(json.dumps(log_entry) + '\n')
+
+logger = logging.getLogger('myapp')
+logger.addHandler(JSONFileHandler())
+logger.setLevel(logging.ERROR)
+
+# Usage
+try:
+    risky_operation()
+except Exception as e:
+    logger.exception('Operation failed')
+```
+
+### Step 2: Configure Promtail
+
+Update `observability/promtail/promtail.yaml` to watch your app's logs:
+
+```yaml
+scrape_configs:
+  - job_name: myapp-logs
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: myapp
+          service: myapp
+          env: dev
+          __path__: /var/log/myapp/*.log
+```
+
+Mount your logs in `compose.observability.yaml`:
+
+```yaml
+promtail:
+  volumes:
+    - ./observability/promtail/promtail.yaml:/etc/promtail/promtail.yaml:ro
+    - /path/to/your/app/logs/app:/var/log/myapp:ro  # ADD THIS
+```
+
+### Step 3: Configure Grafana Alerting
+
+Add alert rule in `observability/grafana/provisioning/alerting/rules.yaml`:
+
+```yaml
+groups:
+  - orgId: 1
+    name: myapp-errors
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: myapp-any-error
+        title: MyApp Error
+        condition: C
+        for: 0m
+        data:
+          - refId: A
+            datasourceUid: -100
+            model:
+              expr: sum(count_over_time({service="myapp", level="error"}[5m]))
+              queryType: range
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A > 0
+              type: math
+              refId: C
+        annotations:
+          summary: "Error detected in myapp"
+        labels:
+          service: myapp
+```
+
+### Step 4: Update Environment Variables
+
+```bash
+# .env
+GITHUB_ORGANISATION="your-github-org"
+GITHUB_REPO_NAME="your-repo-name"
+SERVICES='["myapp"]'
+```
+
+### Step 5: Start Everything
+
+```bash
+# Terminal 1: Start your app (with log server)
+cd /path/to/your/app
+npm run start  # or python app.py
+
+# Terminal 2: Start observability stack
+cd /path/to/sre-agent
+docker compose -f compose.observability.yaml up -d
+
+# Terminal 3: Start SRE agent
+docker compose -f compose.local.yaml up -d
+```
+
+### Step 6: Test the Pipeline
+
+```bash
+# Check logs are being collected
+curl -s -G "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={service="myapp"}' | jq '.data.result[0].values'
+
+# Trigger manual diagnosis
+curl -X POST http://localhost:8003/diagnose \
+  -H "Authorization: Bearer $DEV_BEARER_TOKEN" \
+  -d "text=myapp"
+
+# Check Grafana
+open http://localhost:3000  # Login: admin/admin
+```
+
+---
+
+## 🔄 How It All Works (Step-by-Step)
+
+Here's exactly what happens when an error occurs in your app:
+
+### Step 1: Error Happens in Your App
+
+A user does something that causes an error:
+
+```javascript
+const handleClick = () => {
+  const data = null;
+  console.log(data.name);  // 💥 ERROR: Cannot read property 'name' of null
+};
+```
+
+### Step 2: Logger Catches the Error
+
+Your global error handler catches it:
+
+```javascript
+window.onerror = (message, source, lineno, colno, error) => {
+  // Sends to log server
+  fetch('http://localhost:4000/log', {
+    method: 'POST',
+    body: JSON.stringify({
+      level: 'error',
+      message: 'Cannot read property name of null',
+      stack: 'at handleClick (App.jsx:15)',
+      service: 'myapp'
+    })
+  });
+};
+```
+
+### Step 3: Log Server Writes to File
+
+The log server writes a JSON line:
+
+```json
+{"ts":"2025-11-29T16:15:00Z","level":"error","service":"myapp","msg":"Cannot read property name of null","stack":"at handleClick (App.jsx:15)"}
+```
+
+To file: `./logs/app/app.log`
+
+### Step 4: Promtail Ships to Loki
+
+Promtail watches the file and ships new lines:
+
+```
+[Promtail] Found new log line in /var/log/myapp/app.log
+[Promtail] Shipping to Loki with labels: {service="myapp", job="myapp"}
+```
+
+### Step 5: Grafana Checks for Errors
+
+Every 1 minute, Grafana runs this query:
+
+```
+count_over_time({service="myapp", level="error"}[5m]) > 0
+```
+
+Translation: "Were there any error logs from myapp in the last 5 minutes?"
+
+**If YES** → Alert fires!
+
+### Step 6: Grafana Calls SRE Agent
+
+Grafana sends a webhook:
+
+```bash
+POST http://orchestrator:80/alerts
+{
+  "title": "MyApp Error",
+  "service": "myapp",
+  "annotations": {
+    "summary": "Error detected in myapp"
+  }
+}
+```
+
+### Step 7: SRE Agent Asks AI to Diagnose
+
+The orchestrator:
+
+1. **Queries past incidents** (RAG) - "Have we seen this before?"
+2. **Sends to LLM** with context:
+
+```
+You are an SRE agent. Diagnose this error:
+- Service: myapp
+- Error: Cannot read property name of null at handleClick (App.jsx:15)
+
+Use these tools: get_file_contents, search_code, create_issue, slack_post_message
+```
+
+### Step 8: AI Searches Your Code
+
+The AI calls the GitHub MCP server:
+
+```
+[AI] I need to see App.jsx to understand the error
+[Calling tool get_file_contents with args: {path: "src/App.jsx"}]
+```
+
+GitHub MCP fetches the file from your repository.
+
+### Step 9: AI Finds the Bug
+
+AI analyzes the code:
+
+```javascript
+// Line 15 in App.jsx
+const handleClick = () => {
+  const data = null;        // ← AI sees this
+  console.log(data.name);   // ← AI identifies: accessing .name on null
+};
+```
+
+AI diagnosis:
+> "Root cause: `data` is null but code tries to access `data.name`. 
+> Fix: Add null check `if (data) { console.log(data.name) }`"
+
+### Step 10: Results Posted to Slack
+
+AI calls the Slack MCP server and you see:
+
+```
+🔍 SRE Agent Diagnosis for myapp
+
+Error: Cannot read property 'name' of null
+File: src/App.jsx:15
+
+Root Cause: The variable `data` is null when accessed.
+
+Suggested Fix:
+Add null check before accessing properties:
+if (data) { console.log(data.name) }
+```
+
+---
+
+## 📊 Service URLs
+
+| Service | URL | Purpose |
+|---------|-----|----------|
+| SRE Agent | http://localhost:8003 | Main API |
+| Grafana | http://localhost:3000 | Dashboards & Alerts |
+| Loki | http://localhost:3100 | Log Storage |
+| Qdrant | http://localhost:6333 | RAG Vector DB |
+
+---
+
+## 🗺️ Roadmap
+
+- Enhanced multi-cloud support
+- Additional LLM provider integrations
+- Advanced anomaly detection capabilities
+- Custom alerting rules and thresholds
