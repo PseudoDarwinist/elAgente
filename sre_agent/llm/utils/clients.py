@@ -59,10 +59,8 @@ class DummyClient(BaseClient):
             usage=None,
         )
 
-        logger.info(
-            f"Token usage - Input: {response.usage.input_tokens}, "
-            f"Output: {response.usage.output_tokens}, "
-        )
+        # No token usage for dummy client
+        logger.info("Dummy LLM response generated")
         return response
 
 
@@ -193,6 +191,11 @@ class GeminiClient(BaseClient):
             config=types.GenerateContentConfig(
                 tools=tools,
                 max_output_tokens=self.settings.max_tokens,
+                tool_config=types.ToolConfig(
+                    function_calling_config=types.FunctionCallingConfig(
+                        mode="AUTO",
+                    )
+                ),
             ),
         )
 
@@ -208,22 +211,40 @@ class GeminiClient(BaseClient):
         adapter = GeminiToMCPAdapter(response.candidates)
         content = adapter.adapt()
 
+        # Map Gemini finish_reason to MCP stop_reason
+        # Gemini: STOP, MAX_TOKENS, SAFETY, RECITATION, OTHER
+        # MCP expects: end_turn, tool_use, max_tokens, stop_sequence
+        gemini_finish = (
+            response.candidates[0].finish_reason if response.candidates else "STOP"
+        )
+        if gemini_finish == "STOP":
+            # Check if there are function calls - if so, it's tool_use
+            has_tool_call = any(
+                part.function_call
+                for c in response.candidates
+                if c.content and c.content.parts
+                for part in c.content.parts
+            )
+            stop_reason = "tool_use" if has_tool_call else "end_turn"
+        elif gemini_finish == "MAX_TOKENS":
+            stop_reason = "max_tokens"
+        else:
+            stop_reason = "end_turn"
+
         return Message(
             id=response.response_id or f"gemini_{hash(str(response))}",
             model=response.model_version,
             content=content,
             role="assistant",
-            stop_reason=response.candidates[0].finish_reason
-            if response.candidates
-            else "end_turn",
+            stop_reason=stop_reason,
             usage=Usage(
-                input_tokens=response.usage_metadata.prompt_token_count,
-                output_tokens=response.usage_metadata.candidates_token_count,
+                input_tokens=response.usage_metadata.prompt_token_count or 0,
+                output_tokens=response.usage_metadata.candidates_token_count or 0,
                 cache_creation_input_tokens=None,
                 cache_read_input_tokens=response.usage_metadata.cached_content_token_count,
             )
             if response.usage_metadata
-            else None,
+            else Usage(input_tokens=0, output_tokens=0),
         )
 
 

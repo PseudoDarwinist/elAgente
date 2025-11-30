@@ -20,22 +20,30 @@ def _get_prompt_server_config() -> PromptServerConfig:
 @mcp.prompt()
 def diagnose(service: str, slack_channel_id: str) -> str:
     """Prompt the agent to perform a task."""
-    return f"""I have an error with my application, can you check the logs for the
-{service} service, I only want you to check the pods logs, look up only the 1000
-most recent logs. Feel free to scroll up until you find relevant errors that
-contain reference to a file.
+    return f"""There is a suspected issue with the `{service}` service. Using the
+available tools, do the following once:
 
-Once you have these errors and the file name, get the file contents of the path
-{_get_prompt_server_config().project_root} for the repository
-{_get_prompt_server_config().repo_name} in the organisation
-{_get_prompt_server_config().organisation}. Keep listing the directories until you
-find the file name and then get the contents of the file.
+1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,
+   incidents, or relevant records) you can access for `{service}`. Identify any
+   concrete error messages that reference source files or components.
 
-Please use the file contents to diagnose the error, then please create an issue in
-GitHub reporting a fix for the issue. Once you have diagnosed the error and created an
-issue please report this to the following Slack channel: {slack_channel_id}.
+2) Using GitHub access, navigate within
+   `{_get_prompt_server_config().organisation}/{_get_prompt_server_config().repo_name}`
+   under `{_get_prompt_server_config().project_root}` to find the referenced file(s)
+   and fetch their contents. If exact files aren’t referenced, inspect likely modules
+   based on the error context.
 
-Please only do this ONCE, don't keep making issues or sending messages to Slack."""
+3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:
+   - Title: concise summary of the root cause
+   - Body: steps to reproduce (if applicable), impacted area, and proposed fix
+
+4) Post a single summary message to Slack channel `{slack_channel_id}` with the
+   diagnosis, the created issue URL, and any immediate mitigations.
+
+Important constraints:
+- Use only the tools available.
+- Do not create multiple issues or multiple Slack messages; do it once when ready.
+- If signals aren’t available, focus on code inspection aligned to the error context."""
 
 
 app = FastAPI()
