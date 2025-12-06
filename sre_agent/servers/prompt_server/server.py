@@ -1,4 +1,13 @@
-"""A server containing a prompt to trigger the agent."""
+"""A server containing a prompt to trigger the agent.
+
+PRODUCTION-GRADE PROMPT:
+This enhanced prompt implements the ideal SRE agent design patterns:
+1. Chain of Thought reasoning
+2. Hypothesis-driven investigation
+3. Runbook generation
+4. Validation steps
+5. Confidence scoring
+"""
 
 from functools import lru_cache
 
@@ -19,31 +28,134 @@ def _get_prompt_server_config() -> PromptServerConfig:
 
 @mcp.prompt()
 def diagnose(service: str, slack_channel_id: str) -> str:
-    """Prompt the agent to perform a task."""
-    return f"""There is a suspected issue with the `{service}` service. Using the
-available tools, do the following once:
+    """Prompt the agent to perform a production-grade SRE investigation."""
+    config = _get_prompt_server_config()
+    
+    return f"""## 🔍 INCIDENT INVESTIGATION: {service}
 
-1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,
-   incidents, or relevant records) you can access for `{service}`. Identify any
-   concrete error messages that reference source files or components.
+You are an expert Site Reliability Engineer investigating a production incident.
+Follow this structured, hypothesis-driven approach:
 
-2) Using GitHub access, navigate within
-   `{_get_prompt_server_config().organisation}/{_get_prompt_server_config().repo_name}`
-   under `{_get_prompt_server_config().project_root}` to find the referenced file(s)
-   and fetch their contents. If exact files aren’t referenced, inspect likely modules
-   based on the error context.
+---
 
-3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:
-   - Title: concise summary of the root cause
-   - Body: steps to reproduce (if applicable), impacted area, and proposed fix
+### STEP 1: GATHER INITIAL DATA
 
-4) Post a single summary message to Slack channel `{slack_channel_id}` with the
-   diagnosis, the created issue URL, and any immediate mitigations.
+1. Query error logs for `{service}` from the last 30 minutes using the Loki MCP tools
+2. Look specifically for:
+   - ERROR and WARN level logs
+   - Stack traces or exception messages
+   - Timing/latency information in logs
+   - Any metrics embedded in structured logs (e.g., db_pool_used, latency_ms)
 
-Important constraints:
-- Use only the tools available.
-- Do not create multiple issues or multiple Slack messages; do it once when ready.
-- If signals aren’t available, focus on code inspection aligned to the error context."""
+---
+
+### STEP 2: FORM HYPOTHESES
+
+Based on the logs, form 2-3 hypotheses about the root cause.
+Consider these common patterns:
+
+| Pattern | Log Indicators |
+|---------|----------------|
+| Database issue | "connection pool", "timeout", "query slow", db_pool metrics |
+| Memory issue | "OOM", "heap", "memory", gc_pause metrics |
+| External dependency | "connection refused", "timeout", service names |
+| Code bug | Stack traces, specific file:line references |
+| Configuration | "config", "env", recent timestamps near deploy |
+
+For each hypothesis:
+- State it clearly
+- Identify what evidence would confirm or refute it
+- Rate initial confidence (0-100%)
+
+---
+
+### STEP 3: INVESTIGATE HYPOTHESES
+
+For your top hypothesis:
+1. If logs reference specific files → Use GitHub MCP to fetch those files
+2. If logs show dependency issues → Query logs for related services
+3. If timing correlates with changes → Use GitHub to check recent commits
+
+Search the codebase at `{config.organisation}/{config.repo_name}` under `{config.project_root}`.
+
+---
+
+### STEP 4: SYNTHESIZE FINDINGS
+
+Update your hypothesis confidence based on evidence gathered.
+Identify the most likely root cause.
+
+---
+
+### STEP 5: GENERATE OUTPUT
+
+Structure your final response in this EXACT format:
+
+---
+
+## 🧠 Chain of Thought
+
+1. **Initial Observation**: [What the logs showed]
+2. **Hypothesis 1**: [Your first guess]
+   - Evidence: [What you found]
+   - Verdict: ✅ Confirmed / ❌ Refuted
+3. **Hypothesis 2**: [Alternative explanation]
+   - Evidence: [What you found]
+   - Verdict: ✅ Confirmed / ❌ Refuted
+4. **Conclusion**: [How you arrived at root cause]
+
+## 📊 Evidence Table
+
+| Evidence | Source | Finding |
+|----------|--------|---------|
+| [Log entry or metric] | [Loki/GitHub] | [What it shows] |
+| [Code snippet] | [File path] | [Why it's relevant] |
+
+## 🎯 Root Cause
+
+**[Clear, specific statement of the root cause]**
+
+**Confidence: [X]%**
+
+## ✅ Validation Steps
+
+```bash
+# Commands to verify this diagnosis
+[kubectl/curl/query command 1]
+[kubectl/curl/query command 2]
+```
+
+## 📋 Runbook
+
+### Immediate Mitigation
+1. [First action to stop the bleeding]
+
+### Fix Root Cause  
+2. [Action to fix the underlying issue]
+3. [Any code/config changes needed]
+
+### Verify Fix
+4. [How to confirm the fix worked]
+
+### Prevent Recurrence
+5. [What to add/change to prevent this in future]
+
+---
+
+## 📝 FINAL ACTIONS
+
+1. **Post to Slack**: Send the complete diagnosis above to channel `{slack_channel_id}`
+2. **Create GitHub Issue**: Create an issue in `{config.organisation}/{config.repo_name}` with:
+   - Title: `[Incident] {service}: [Root cause summary]`
+   - Body: The full diagnosis including runbook
+
+**IMPORTANT CONSTRAINTS:**
+- Use ONLY the tools available to you
+- Query Loki for logs (not Kubernetes)
+- Be specific in your diagnosis - avoid vague statements
+- Include actual log snippets and code references as evidence
+- Create only ONE Slack message and ONE GitHub issue when ready
+"""
 
 
 app = FastAPI()

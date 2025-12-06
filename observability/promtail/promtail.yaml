@@ -19,6 +19,13 @@ scrape_configs:
           __path__: /var/log/app/*.log
 
   - job_name: promptbuilder-logs
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            msg: msg
+      - labels:
+          level:
     static_configs:
       - targets: [localhost]
         labels:

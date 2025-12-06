@@ -8,7 +8,8 @@ contactPoints:
         settings:
           url: http://orchestrator:80/alerts
           httpMethod: POST
-          authorization_header: "X-Alert-Secret: demo-secret-123"
+          authorizationScheme: "X-Alert-Secret"
+          authorizationCredentials: "demo-secret-123"
 
 
 

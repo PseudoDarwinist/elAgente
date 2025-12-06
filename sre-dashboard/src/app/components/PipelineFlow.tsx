@@ -21,143 +21,135 @@ interface StageConfig {
     key: keyof PipelineState;
     label: string;
     icon: React.ReactNode;
+    color: string;
 }
 
 const stages: StageConfig[] = [
-    { key: 'errorDetected', label: 'Error Detected', icon: <AlertTriangle className="w-5 h-5" /> },
-    { key: 'logsCollected', label: 'Logs Collected', icon: <Database className="w-5 h-5" /> },
-    { key: 'alertFired', label: 'Alert Fired', icon: <Bell className="w-5 h-5" /> },
-    { key: 'agentAnalyzing', label: 'Agent Analyzing', icon: <Brain className="w-5 h-5" /> },
-    { key: 'actionsComplete', label: 'Actions Complete', icon: <CheckCircle2 className="w-5 h-5" /> },
+    { key: 'errorDetected', label: 'ERROR', icon: <AlertTriangle className="w-6 h-6" />, color: '#fca5a5' },
+    { key: 'logsCollected', label: 'LOGS', icon: <Database className="w-6 h-6" />, color: '#bae6fd' },
+    { key: 'alertFired', label: 'ALERT', icon: <Bell className="w-6 h-6" />, color: '#fde047' },
+    { key: 'agentAnalyzing', label: 'BRAIN', icon: <Brain className="w-6 h-6" />, color: '#d8b4fe' },
+    { key: 'actionsComplete', label: 'DONE', icon: <CheckCircle2 className="w-6 h-6" />, color: '#86efac' },
 ];
 
-function getStageStyles(status: PipelineStage) {
+function getStageStyles(status: PipelineStage, baseColor: string) {
     switch (status) {
         case 'active':
             return {
-                bg: 'bg-blue-500/20',
-                border: 'border-blue-500',
-                text: 'text-blue-400',
-                icon: 'text-blue-400',
-                glow: 'shadow-[0_0_20px_rgba(59,130,246,0.5)]',
+                bg: baseColor,
+                border: 'border-black',
+                opacity: 'opacity-100',
+                transform: 'scale-110',
+                shadow: 'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]',
             };
         case 'complete':
             return {
-                bg: 'bg-emerald-500/20',
-                border: 'border-emerald-500',
-                text: 'text-emerald-400',
-                icon: 'text-emerald-400',
-                glow: '',
+                bg: '#ffffff',
+                border: 'border-black',
+                opacity: 'opacity-100',
+                transform: 'scale-100',
+                shadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
             };
         case 'error':
             return {
-                bg: 'bg-red-500/20',
-                border: 'border-red-500',
-                text: 'text-red-400',
-                icon: 'text-red-400',
-                glow: 'shadow-[0_0_20px_rgba(239,68,68,0.5)]',
+                bg: '#ef4444',
+                border: 'border-black',
+                opacity: 'opacity-100',
+                transform: 'rotate-3',
+                shadow: 'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]',
             };
         default:
             return {
-                bg: 'bg-slate-800/50',
-                border: 'border-slate-700',
-                text: 'text-slate-500',
-                icon: 'text-slate-600',
-                glow: '',
+                bg: '#e5e7eb',
+                border: 'border-neutral-400',
+                opacity: 'opacity-50',
+                transform: 'scale-100',
+                shadow: 'shadow-none',
             };
     }
-}
-
-function getConnectorStyles(fromStatus: PipelineStage, toStatus: PipelineStage) {
-    if (fromStatus === 'complete' && (toStatus === 'active' || toStatus === 'complete')) {
-        return 'bg-emerald-500';
-    }
-    if (fromStatus === 'active') {
-        return 'bg-gradient-to-r from-blue-500 to-slate-600';
-    }
-    return 'bg-slate-700';
 }
 
 export function PipelineFlow({ state }: PipelineFlowProps) {
     return (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
-            <h3 className="text-sm font-medium text-slate-400 mb-6 uppercase tracking-wider">Pipeline Status</h3>
-            
-            <div className="flex items-center justify-between">
-                {stages.map((stage, index) => {
-                    const status = state[stage.key];
-                    const styles = getStageStyles(status);
-                    const isLast = index === stages.length - 1;
-                    const nextStatus = !isLast ? state[stages[index + 1].key] : 'idle';
-                    
-                    return (
-                        <div key={stage.key} className="flex items-center flex-1">
-                            {/* Stage Node */}
-                            <motion.div
-                                className={`
-                                    relative flex flex-col items-center
-                                `}
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: index * 0.1 }}
-                            >
+        <div className="w-full overflow-x-auto pb-8">
+            <div className="min-w-[800px] bg-white border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex items-center justify-between gap-4">
+                    {stages.map((stage, index) => {
+                        const status = state[stage.key];
+                        const styles = getStageStyles(status, stage.color);
+                        const isLast = index === stages.length - 1;
+                        
+                        return (
+                            <div key={stage.key} className="flex items-center flex-1 group">
+                                {/* Stage Node */}
                                 <motion.div
                                     className={`
-                                        w-12 h-12 rounded-xl border-2 flex items-center justify-center
-                                        ${styles.bg} ${styles.border} ${styles.glow}
-                                        transition-all duration-300
+                                        relative flex flex-col items-center justify-center
+                                        w-24 h-24 border-4 transition-all duration-200 z-10
+                                        ${styles.bg} ${styles.border} ${styles.shadow} ${styles.opacity}
                                     `}
                                     animate={status === 'active' ? {
-                                        scale: [1, 1.05, 1],
+                                        rotate: [-1, 1, -1],
+                                        scale: [1.05, 1.1, 1.05],
                                     } : {}}
                                     transition={{
-                                        duration: 1.5,
+                                        duration: 0.5,
                                         repeat: status === 'active' ? Infinity : 0,
-                                        ease: "easeInOut"
                                     }}
                                 >
-                                    <span className={styles.icon}>
+                                    <div className="text-black mb-1">
                                         {stage.icon}
+                                    </div>
+                                    <span className="text-xs font-black text-black tracking-tighter uppercase">
+                                        {stage.label}
                                     </span>
+                                    
+                                    {/* Status Indicator Badge */}
+                                    <div className="absolute -top-3 -right-3">
+                                        {status === 'active' && (
+                                            <div className="w-6 h-6 bg-blue-500 border-2 border-black animate-bounce flex items-center justify-center">
+                                                <div className="w-2 h-2 bg-white rounded-full" />
+                                            </div>
+                                        )}
+                                        {status === 'complete' && (
+                                            <div className="w-6 h-6 bg-green-500 border-2 border-black flex items-center justify-center">
+                                                <CheckCircle2 className="w-4 h-4 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </motion.div>
                                 
-                                <span className={`mt-2 text-xs font-medium ${styles.text} text-center whitespace-nowrap`}>
-                                    {stage.label}
-                                </span>
-                                
-                                {/* Pulse indicator for active */}
-                                {status === 'active' && (
-                                    <motion.div
-                                        className="absolute -inset-1 rounded-xl bg-blue-500/20"
-                                        animate={{ opacity: [0.5, 0, 0.5] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                    />
+                                {/* Connector */}
+                                {!isLast && (
+                                    <div className="flex-1 h-2 mx-2 bg-gray-200 border-y-2 border-black relative overflow-hidden">
+                                        {/* Progress bar inside connector */}
+                                        <motion.div 
+                                            className="absolute inset-0 bg-black"
+                                            initial={{ x: '-100%' }}
+                                            animate={{ 
+                                                x: status === 'complete' ? '0%' : '-100%' 
+                                            }}
+                                            transition={{ duration: 0.5 }}
+                                        />
+                                        {status === 'active' && (
+                                            <motion.div 
+                                                className="absolute inset-0 bg-black/20"
+                                                animate={{ x: ['-100%', '100%'] }}
+                                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                            />
+                                        )}
+                                    </div>
                                 )}
-                            </motion.div>
-                            
-                            {/* Connector */}
-                            {!isLast && (
-                                <div className="flex-1 flex items-center justify-center px-2 -mt-6">
-                                    <motion.div
-                                        className={`h-0.5 w-full rounded-full ${getConnectorStyles(status, nextStatus)}`}
-                                        initial={{ scaleX: 0 }}
-                                        animate={{ scaleX: 1 }}
-                                        transition={{ delay: index * 0.1 + 0.1, duration: 0.3 }}
-                                    />
-                                    <ArrowRight className={`w-4 h-4 -ml-1 ${
-                                        status === 'complete' ? 'text-emerald-500' : 'text-slate-600'
-                                    }`} />
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
 }
 
-// Helper function to map events to pipeline state
+// Helper function (kept same logic)
 export function eventsToPipelineState(events: Array<{ event_type: string }>): PipelineState {
     const state: PipelineState = {
         errorDetected: 'idle',
@@ -204,18 +196,15 @@ export function eventsToPipelineState(events: Array<{ event_type: string }>): Pi
                 state.actionsComplete = 'complete';
                 break;
             case 'error':
-                // Mark current active stage as error
                 if (state.agentAnalyzing === 'active') state.agentAnalyzing = 'error';
                 else if (state.alertFired === 'active') state.alertFired = 'error';
                 else if (state.logsCollected === 'active') state.logsCollected = 'error';
                 break;
         }
     }
-
     return state;
 }
 
-// Initial idle state
 export const initialPipelineState: PipelineState = {
     errorDetected: 'idle',
     logsCollected: 'idle',

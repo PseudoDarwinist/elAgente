@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 
 interface StatusBadgeProps {
   label: string;
@@ -8,28 +8,20 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ label, status }: StatusBadgeProps) {
   return (
-    <div className={`
-      flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md transition-all duration-300
-      ${status === 'connected'
-        ? 'bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-        : 'bg-slate-900/50 border-slate-800'
-      }
-    `}>
-      <span className={`
-        text-xs font-bold tracking-wider uppercase
-        ${status === 'connected' ? 'text-emerald-400' : 'text-slate-400'}
-      `}>
-        {label}
-      </span>
+    <div className={clsx(
+      "flex items-center gap-3 px-4 py-2 border-3 border-black font-bold uppercase tracking-wider transition-all duration-200",
+      "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+      status === 'connected' ? "bg-[#bbf7d0] text-black" : 
+      status === 'disconnected' ? "bg-[#fca5a5] text-black" :
+      "bg-[#fef08a] text-black"
+    )}>
+      <span className="text-xs md:text-sm font-black">{label}</span>
 
-      {status === 'loading' && <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />}
-      {status === 'connected' && (
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-2 h-2 bg-emerald-400 rounded-full animate-ping opacity-75" />
-          <CheckCircle className="relative w-4 h-4 text-emerald-400" />
-        </div>
-      )}
-      {status === 'disconnected' && <XCircle className="w-4 h-4 text-red-400" />}
+      <div className="p-1 border-2 border-black bg-white rounded-none">
+        {status === 'loading' && <Loader2 className="w-4 h-4 animate-spin" />}
+        {status === 'connected' && <Check className="w-4 h-4 text-black" />}
+        {status === 'disconnected' && <X className="w-4 h-4 text-black" />}
+      </div>
     </div>
   );
 }

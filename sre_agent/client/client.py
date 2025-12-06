@@ -1,4 +1,20 @@
-"""An MCP SSE Client for interacting with a server using the MCP protocol."""
+"""An MCP SSE Client for interacting with a server using the MCP protocol.
+
+ARCHITECTURE OVERVIEW (For Technical Panel):
+--------------------------------------------
+This is the "Brain" (Orchestrator) of the Event-Driven SRE Agent.
+It implements a Cognitive Architecture based on the Model Context Protocol (MCP).
+
+Key Components:
+1.  **FastAPI Server**: Handles incoming Webhooks (Grafana) and Diagnosis Requests.
+2.  **MCP Client**: Connects to "Tool Servers" (GitHub, Slack, etc.) dynamically.
+    -   Decouples "Thinking" (LLM) from "Doing" (Tools).
+    -   Tools run as separate microservices for security and scalability.
+3.  **ReAct Loop**: Manually implements the Reason -> Act -> Observe loop.
+    -   See `process_query()` for the core agentic logic.
+4.  **RAG Engine**: Injects "Long-Term Memory" from Qdrant (Vector DB) to solve repetitive incidents.
+5.  **Event Stream**: Uses Server-Sent Events (SSE) to push real-time "thoughts" to the Dashboard.
+"""
 
 import asyncio
 import json
@@ -42,8 +58,17 @@ PORT = 3001
 END_TURN = "end_turn"
 LAST_RUNS: dict[str, float] = {}
 
+# Latest run tracking for dashboard auto-subscription
+LATEST_RUN: dict[str, str | float | None] = {"run_id": None, "service": None, "timestamp": 0}
+
 # ============================================================================
 # Event Streaming Infrastructure for Real-Time Dashboard
+#
+# WHY THIS MATTERS:
+# Instead of polling a database (slow, resource-heavy), we use an
+# in-memory event buffer and Server-Sent Events (SSE).
+# This allows the Dashboard to show the Agent's "Thought Process" in
+# sub-second real-time, creating a "Glass Box" AI experience.
 # ============================================================================
 
 @dataclass
@@ -76,7 +101,13 @@ def _get_client_config() -> ClientConfig:
 
 
 class MCPClient:
-    """An MCP client for connecting to a server using SSE transport."""
+    """An MCP client for connecting to a server using SSE transport.
+    
+    TECHNICAL NOTE:
+    This client demonstrates the "Tool-Use" pattern without LangChain.
+    It manually manages the connection to MCP servers (GitHub, Slack, etc.),
+    discovers their capabilities (`list_tools`), and binds them to the LLM.
+    """
 
     def __init__(self) -> None:
         """Initialise the MCP client and set up the LLM API client."""
@@ -186,7 +217,17 @@ class MCPClient:
     async def process_query(  # noqa: C901, PLR0912, PLR0915
         self, service: str, slack_channel_id: str, extra_context: str | None = None, run_id: str | None = None
     ) -> dict[str, Any]:
-        """Process a query using Claude and available tools."""
+        """Process a query using Claude and available tools.
+        
+        THE COGNITIVE LOOP (ReAct):
+        ---------------------------
+        This function implements the core "Reasoning Loop" of the agent:
+        1.  **Context Injection**: Combines User Query + Alert Logs + RAG History.
+        2.  **LLM Call**: Sends everything to Claude (Anthropic).
+        3.  **Tool Decision**: If Claude wants to use a tool (e.g., `get_logs`), we execute it via MCP.
+        4.  **Feedback**: The tool result is fed back into the context window.
+        5.  **Repeat**: The loop continues until Claude says "I'm done" or solves the problem.
+        """
         query = await self._get_prompt(service, slack_channel_id)
         logger.info(f"Processing query: {query}...")
         start_time = time.perf_counter()
@@ -199,6 +240,10 @@ class MCPClient:
         self.messages = [{"role": query.role, "content": query.content}]
 
         # Inject RAG context and alert context if available
+        # -------------------------------------------------
+        # RAG (Retrieval Augmented Generation):
+        # We query Qdrant (Vector DB) for "Relevant prior incidents".
+        # This gives the agent "Experience" - it knows how similar bugs were fixed in the past.
         if extra_context:
             try:
                 rag_snippets = [s for s in query_similar(extra_context) if s]
@@ -421,7 +466,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3002"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -541,14 +586,12 @@ async def run_diagnosis_and_post(service: str, alert_context: str | None = None,
 async def diagnose(
     request: Request,
     background_tasks: BackgroundTasks,
-    _authorisation: Annotated[None, Depends(is_request_valid)],
 ) -> JSONResponse:
     """Handle incoming Slack slash command requests for service diagnosis.
 
     Args:
         request: The FastAPI request object containing form data.
         background_tasks: FastAPI background tasks handler.
-        authorisation: Authorization check result from is_request_valid dependency.
 
     Returns:
         JSONResponse: indicating the diagnosis has started with run_id for event streaming.
@@ -595,14 +638,22 @@ async def diagnose(
 async def alerts(request: Request, background_tasks: BackgroundTasks) -> JSONResponse:
     """Webhook endpoint for Grafana (or any alert source).
 
-    Expects header `X-Alert-Secret` to match env ALERT_WEBHOOK_SECRET.
-    Attempts to derive `service` from labels; defaults to first configured service.
-    Passes a compacted JSON payload as extra context to the diagnosis run.
-    Returns run_id for event streaming.
+    THE TRIGGER:
+    ------------
+    1.  Receives a JSON payload from Grafana (via Webhook).
+    2.  Extracts the `service` name and `alert_context`.
+    3.  Updates `LATEST_RUN` so the Dashboard knows there's a new incident.
+    4.  Spins up a `background_task` to run the diagnosis (Async processing).
     """
     secret = os.getenv("ALERT_WEBHOOK_SECRET", "")
+    # Check X-Alert-Secret header first
     provided = request.headers.get("X-Alert-Secret", "")
+    # Also check Authorization header (Grafana sends: "Authorization: X-Alert-Secret <secret>")
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("X-Alert-Secret "):
+        provided = auth_header.split(" ", 1)[1] if " " in auth_header else ""
     if secret and provided != secret:
+        logger.warning(f"Alert auth failed. Expected secret, got X-Alert-Secret={request.headers.get('X-Alert-Secret', '')}, Auth={auth_header[:30]}...")
         raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid secret")
 
     payload = await request.json()
@@ -654,11 +705,28 @@ async def alerts(request: Request, background_tasks: BackgroundTasks) -> JSONRes
     })
 
     LAST_RUNS[service] = now
+    
+    # Update latest run for dashboard auto-subscription
+    LATEST_RUN.update({"run_id": run_id, "service": service, "timestamp": now})
+    
     background_tasks.add_task(run_diagnosis_and_post, service, alert_context, run_id)
 
     return JSONResponse(
         status_code=HTTPStatus.OK,
         content={"status": "accepted", "service": service, "run_id": run_id},
+    )
+
+
+@app.get("/latest-run")
+async def get_latest_run() -> JSONResponse:
+    """Get the latest alert-triggered run for dashboard auto-subscription.
+    
+    Returns the most recent run_id, service, and timestamp from Grafana alerts.
+    The dashboard can poll this endpoint to detect new alerts and auto-subscribe.
+    """
+    return JSONResponse(
+        status_code=HTTPStatus.OK,
+        content=LATEST_RUN,
     )
 
 

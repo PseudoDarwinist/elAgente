@@ -72,7 +72,7 @@ I’m going to quickly list the repository structure and open the relevant serve
 
 <tool-use data-tool-type="generic" data-tool-name="list_dir">
 <details>
-            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+            <summary>Tool use: **list_dir** • Listed directory undefined • **0** results</summary>
         
 No results found
 </details>
@@ -276,22 +276,22 @@ I updated the plan to: make Kubernetes optional via an ENABLED_SERVERS env, gene
 +from enum import StrEnum
 @@
  class MCPServer(StrEnum):
-     &quot;&quot;&quot;The service names for the MCP servers.&quot;&quot;&quot;
+     """The service names for the MCP servers."""
  
-     SLACK = &quot;slack&quot;
-     GITHUB = &quot;github&quot;
-     KUBERNETES = &quot;kubernetes&quot;
-     PROMPT = &quot;prompt-server&quot;
-+    SALESFORCE = &quot;salesforce&quot;
+     SLACK = "slack"
+     GITHUB = "github"
+     KUBERNETES = "kubernetes"
+     PROMPT = "prompt-server"
++    SALESFORCE = "salesforce"
 +
 +
-+def get_enabled_servers() -&gt; list[&quot;MCPServer&quot;]:
-+    &quot;&quot;&quot;Return the list of enabled MCP servers based on env var ENABLED_SERVERS.
++def get_enabled_servers() -&gt; list["MCPServer"]:
++    """Return the list of enabled MCP servers based on env var ENABLED_SERVERS.
 +
 +    If ENABLED_SERVERS is not set or empty/invalid, default to all servers
 +    defined in MCPServer.
-+    &quot;&quot;&quot;
-+    raw = os.getenv(&quot;ENABLED_SERVERS&quot;, &quot;&quot;)
++    """
++    raw = os.getenv("ENABLED_SERVERS", "")
 +    if not raw:
 +        return list(MCPServer)
 +
@@ -302,10 +302,10 @@ I updated the plan to: make Kubernetes optional via an ENABLED_SERVERS env, gene
 +            try:
 +                enabled.append(MCPServer(name))
 +            except ValueError:
-+                logger.warning(&quot;Ignoring unknown MCP server &#39;%s&#39; in ENABLED_SERVERS&quot;, name)
++                logger.warning("Ignoring unknown MCP server '%s' in ENABLED_SERVERS", name)
 +        return enabled or list(MCPServer)
 +    except Exception as exc:  # noqa: BLE001
-+        logger.error(&quot;Failed to parse ENABLED_SERVERS: %s&quot;, exc)
++        logger.error("Failed to parse ENABLED_SERVERS: %s", exc)
 +        return list(MCPServer)
 *** End Patch
 ```
@@ -348,8 +348,8 @@ I need to edit the loops in client.py to make sure they're using get_enabled_ser
 +                        s.name for s in get_enabled_servers() if s not in client.sessions
 +                    ]
                      logger.error(
-                         &quot;MCP Client failed to establish required server sessions: &quot;
-                         f&quot;{&#39;, &#39;.join(missing)}&quot;
+                         "MCP Client failed to establish required server sessions: "
+                         f"{', '.join(missing)}"
                      )
                      # TODO: Post error back to Slack?
                      return
@@ -384,8 +384,8 @@ I need to edit the loops in client.py to make sure they're using get_enabled_ser
 @@
  @mcp.prompt()
  def diagnose(service: str, slack_channel_id: str) -&gt; str:
-     &quot;&quot;&quot;Prompt the agent to perform a task.&quot;&quot;&quot;
--    return f&quot;&quot;&quot;I have an error with my application, can you check the logs for the
+     """Prompt the agent to perform a task."""
+-    return f"""I have an error with my application, can you check the logs for the
 -{service} service, I only want you to check the pods logs, look up only the 1000
 -most recent logs. Feel free to scroll up until you find relevant errors that
 -contain reference to a file.
@@ -400,8 +400,8 @@ I need to edit the loops in client.py to make sure they're using get_enabled_ser
 -GitHub reporting a fix for the issue. Once you have diagnosed the error and created an
 -issue please report this to the following Slack channel: {slack_channel_id}.
 -
--Please only do this ONCE, don&#39;t keep making issues or sending messages to Slack.&quot;&quot;&quot;
-+    return f&quot;&quot;&quot;There is a suspected issue with the &#96;{service}&#96; service. Using the
+-Please only do this ONCE, don't keep making issues or sending messages to Slack."""
++    return f"""There is a suspected issue with the &#96;{service}&#96; service. Using the
 +available tools, do the following once:
 +
 +1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,
@@ -424,7 +424,7 @@ I need to edit the loops in client.py to make sure they're using get_enabled_ser
 +Important constraints:
 +- Use only the tools available.
 +- Do not create multiple issues or multiple Slack messages; do it once when ready.
-+- If signals aren’t available, focus on code inspection aligned to the error context.&quot;&quot;&quot;
++- If signals aren’t available, focus on code inspection aligned to the error context."""
 *** End Patch
 ```
 
@@ -470,7 +470,7 @@ I'm going to create `compose.local.yaml` that mirrors `compose.aws.yaml`, but I 
 +      - SLACK_TEAM_ID=${SLACK_TEAM_ID}
 +      - TRANSPORT=SSE
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;nc&quot;, &quot;-z&quot;, &quot;localhost&quot;, &quot;3001&quot;]
++      test: ["CMD", "nc", "-z", "localhost", "3001"]
 +      interval: 5s
 +      timeout: 3s
 +      retries: 5
@@ -483,7 +483,7 @@ I'm going to create `compose.local.yaml` that mirrors `compose.aws.yaml`, but I 
 +      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}
 +      - TRANSPORT=SSE
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;nc&quot;, &quot;-z&quot;, &quot;localhost&quot;, &quot;3001&quot;]
++      test: ["CMD", "nc", "-z", "localhost", "3001"]
 +      interval: 5s
 +      timeout: 3s
 +      retries: 5
@@ -497,7 +497,7 @@ I'm going to create `compose.local.yaml` that mirrors `compose.aws.yaml`, but I 
 +      - GITHUB_REPO_NAME=${GITHUB_REPO_NAME}
 +      - PROJECT_ROOT=${PROJECT_ROOT}
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:3001/health&quot;]
++      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
 +      interval: 30s
 +      timeout: 10s
 +      retries: 3
@@ -513,7 +513,7 @@ I'm going to create `compose.local.yaml` that mirrors `compose.aws.yaml`, but I 
 +      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 +      - GEMINI_API_KEY=${GEMINI_API_KEY}
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:8000/health&quot;]
++      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
 +      interval: 30s
 +      timeout: 10s
 +      retries: 3
@@ -531,7 +531,7 @@ I'm going to create `compose.local.yaml` that mirrors `compose.aws.yaml`, but I 
 +    environment:
 +      - HF_TOKEN=${HF_TOKEN}
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:8000/health&quot;]
++      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
 +      interval: 30s
 +      timeout: 10s
 +      retries: 3
@@ -541,7 +541,7 @@ I'm going to create `compose.local.yaml` that mirrors `compose.aws.yaml`, but I 
 +      context: .
 +      dockerfile: sre_agent/client/Dockerfile
 +    ports:
-+      - &quot;8003:80&quot;
++      - "8003:80"
 +    depends_on:
 +      llama-firewall:
 +        condition: service_healthy
@@ -1135,7 +1135,7 @@ I'm encountering issues with applying the patch because the creation of a new fi
       
 
 ```diff
-&lt;&lt;&#39;PATCH&#39;
+&lt;&lt;'PATCH'
 *** Begin Patch
 *** Add File: /Users/chetansingh/Documents/Hackathon/sre-agent/docs/env.local.template
 +# ========= LLM (choose one provider) =========
@@ -1162,7 +1162,7 @@ I'm encountering issues with applying the patch because the creation of a new fi
 +# Context for prompt-server navigation
 +GITHUB_ORGANISATION=
 +GITHUB_REPO_NAME=
-+# Path within the repo where your app code lives (&quot;.&quot; for root)
++# Path within the repo where your app code lives ("." for root)
 +PROJECT_ROOT=.
 +
 +# ========= Orchestrator / Agent =========
@@ -1171,11 +1171,11 @@ I'm encountering issues with applying the patch because the creation of a new fi
 +# Query timeout in seconds
 +QUERY_TIMEOUT=300
 +# Enable only non-K8s servers for local run
-+ENABLED_SERVERS=[&quot;slack&quot;,&quot;github&quot;,&quot;prompt-server&quot;]
++ENABLED_SERVERS=["slack","github","prompt-server"]
 +# Allowed tools (minimum viable set)
-+TOOLS=[&quot;get_file_contents&quot;,&quot;create_issue&quot;,&quot;slack_post_message&quot;,&quot;slack_list_channels&quot;]
++TOOLS=["get_file_contents","create_issue","slack_post_message","slack_list_channels"]
 +# List of service names you want to diagnose (space of one is fine)
-+SERVICES=[&quot;salesforce&quot;]
++SERVICES=["salesforce"]
 +
 +# ========= Firewall (optional) =========
 +# Hugging Face token if required by your environment (can be left empty)
@@ -1547,21 +1547,21 @@ I'll add a small validation script that checks your .env for required variables 
 +
 +ENV_FILE=${1:-.env}
 +
-+if [[ ! -f &quot;$ENV_FILE&quot; ]]; then
-+  echo &quot;Error: $ENV_FILE not found. Usage: scripts/validate_env.sh [path-to-env]&quot; &gt;&amp;2
++if [[ ! -f "$ENV_FILE" ]]; then
++  echo "Error: $ENV_FILE not found. Usage: scripts/validate_env.sh [path-to-env]" &gt;&amp;2
 +  exit 1
 +fi
 +
 +# shellcheck disable=SC1090
-+set -a; source &quot;$ENV_FILE&quot;; set +a
++set -a; source "$ENV_FILE"; set +a
 +
 +fail=false
 +
 +require_nonempty() {
 +  local key=$1
 +  local val=${!key-}
-+  if [[ -z &quot;${val}&quot; ]]; then
-+    echo &quot;Missing required env: $key&quot; &gt;&amp;2
++  if [[ -z "${val}" ]]; then
++    echo "Missing required env: $key" &gt;&amp;2
 +    fail=true
 +  fi
 +}
@@ -1569,17 +1569,17 @@ I'll add a small validation script that checks your .env for required variables 
 +require_json_array_nonempty() {
 +  local key=$1
 +  local val=${!key-}
-+  python3 - &lt;&lt;&#39;PY&#39;
++  python3 - &lt;&lt;'PY'
 +import json, os, sys
 +key = sys.argv[1]
-+val = os.environ.get(key, &#39;&#39;)
++val = os.environ.get(key, '')
 +try:
 +    arr = json.loads(val)
 +    if not isinstance(arr, list) or len(arr) == 0:
-+        print(f&quot;{key} must be a non-empty JSON array&quot;, file=sys.stderr)
++        print(f"{key} must be a non-empty JSON array", file=sys.stderr)
 +        sys.exit(1)
 +except Exception as e:
-+    print(f&quot;{key} must be valid JSON array: {e}&quot;, file=sys.stderr)
++    print(f"{key} must be valid JSON array: {e}", file=sys.stderr)
 +    sys.exit(1)
 +sys.exit(0)
 +PY
@@ -1589,56 +1589,56 @@ I'll add a small validation script that checks your .env for required variables 
 +  fi
 +}
 +
-+echo &quot;Validating core orchestrator vars...&quot;
++echo "Validating core orchestrator vars..."
 +require_nonempty DEV_BEARER_TOKEN
 +require_nonempty SLACK_SIGNING_SECRET
 +require_json_array_nonempty TOOLS
 +require_json_array_nonempty SERVICES
 +
-+echo &quot;Validating prompt repo context...&quot;
++echo "Validating prompt repo context..."
 +require_nonempty GITHUB_ORGANISATION
 +require_nonempty GITHUB_REPO_NAME
 +require_nonempty PROJECT_ROOT
 +
-+echo &quot;Validating enabled servers...&quot;
-+ENABLED=${ENABLED_SERVERS:-&quot;[\&quot;slack\&quot;,\&quot;github\&quot;,\&quot;prompt-server\&quot;]&quot;}
++echo "Validating enabled servers..."
++ENABLED=${ENABLED_SERVERS:-"[\"slack\",\"github\",\"prompt-server\"]"}
 +
 +# Normalize JSON (also validates)
-+ENABLED_NORM=$(python3 - &lt;&lt;&#39;PY&#39;
++ENABLED_NORM=$(python3 - &lt;&lt;'PY'
 +import json, os
-+print(json.dumps(json.loads(os.environ.get(&#39;ENABLED_SERVERS&#39;, &#39;[]&#39;))))
++print(json.dumps(json.loads(os.environ.get('ENABLED_SERVERS', '[]'))))
 +PY
-+  ) || ENABLED_NORM=&quot;[]&quot;
++  ) || ENABLED_NORM="[]"
 +
 +has_server() {
 +  python3 - &lt;&lt;PY
 +import json, os, sys
-+arr = json.loads(os.environ.get(&#39;ENABLED_NORM&#39;,&#39;[]&#39;))
-+print(&#39;yes&#39; if sys.argv[1] in arr else &#39;no&#39;)
++arr = json.loads(os.environ.get('ENABLED_NORM','[]'))
++print('yes' if sys.argv[1] in arr else 'no')
 +PY
-+  &quot;$1&quot;
++  "$1"
 +}
 +
-+if [[ $(has_server slack) == &quot;yes&quot; ]]; then
-+  echo &quot;Validating Slack server vars...&quot;
++if [[ $(has_server slack) == "yes" ]]; then
++  echo "Validating Slack server vars..."
 +  require_nonempty SLACK_BOT_TOKEN
 +  require_nonempty SLACK_TEAM_ID
 +  require_nonempty SLACK_CHANNEL_ID
 +fi
 +
-+if [[ $(has_server github) == &quot;yes&quot; ]]; then
-+  echo &quot;Validating GitHub server vars...&quot;
++if [[ $(has_server github) == "yes" ]]; then
++  echo "Validating GitHub server vars..."
 +  require_nonempty GITHUB_PERSONAL_ACCESS_TOKEN
 +fi
 +
-+echo &quot;Validating LLM provider...&quot;
++echo "Validating LLM provider..."
 +PROV=${PROVIDER:-mock}
 +MODEL_OK=${MODEL:-}
-+if [[ -z &quot;$MODEL_OK&quot; ]]; then
-+  echo &quot;MODEL must be set to a valid model for your provider&quot; &gt;&amp;2
++if [[ -z "$MODEL_OK" ]]; then
++  echo "MODEL must be set to a valid model for your provider" &gt;&amp;2
 +  fail=true
 +fi
-+case &quot;$PROV&quot; in
++case "$PROV" in
 +  gemini)
 +    require_nonempty GEMINI_API_KEY
 +    ;;
@@ -1646,28 +1646,28 @@ I'll add a small validation script that checks your .env for required variables 
 +    require_nonempty ANTHROPIC_API_KEY
 +    ;;
 +  openai)
-+    echo &quot;Note: OpenAI client not implemented; choose gemini or anthropic&quot; &gt;&amp;2
++    echo "Note: OpenAI client not implemented; choose gemini or anthropic" &gt;&amp;2
 +    fail=true
 +    ;;
 +  self-hosted)
-+    echo &quot;Note: self-hosted client not implemented; choose gemini or anthropic&quot; &gt;&amp;2
++    echo "Note: self-hosted client not implemented; choose gemini or anthropic" &gt;&amp;2
 +    fail=true
 +    ;;
 +  mock)
-+    echo &quot;Warning: PROVIDER=mock will not generate real responses&quot; &gt;&amp;2
++    echo "Warning: PROVIDER=mock will not generate real responses" &gt;&amp;2
 +    ;;
 +  *)
-+    echo &quot;Unsupported PROVIDER: $PROV (use gemini or anthropic)&quot; &gt;&amp;2
++    echo "Unsupported PROVIDER: $PROV (use gemini or anthropic)" &gt;&amp;2
 +    fail=true
 +    ;;
 +esac
 +
-+if [[ &quot;$fail&quot; == true ]]; then
-+  echo &quot;\nEnvironment validation FAILED. Please fix the above items.&quot; &gt;&amp;2
++if [[ "$fail" == true ]]; then
++  echo "\nEnvironment validation FAILED. Please fix the above items." &gt;&amp;2
 +  exit 1
 +fi
 +
-+echo &quot;Environment validation PASSED.&quot;
++echo "Environment validation PASSED."
 *** End Patch
 ```
 
@@ -1857,7 +1857,7 @@ Let me run a safe validator against docs/.env.debug that only reports missing/ma
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc '
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc '
 set -euo pipefail
 ENV_FILE="docs/.env.debug"
 if [[ ! -f "$ENV_FILE" ]]; then
@@ -2052,11 +2052,11 @@ INVALID: SERVICES must be a non-empty JSON array
 MISSING: GITHUB_ORGANISATION
 \nEnv checks FAILED. Fix the above items.
 Traceback (most recent call last):
-  File &quot;&lt;stdin&gt;&quot;, line 3, in &lt;module&gt;
+  File "&lt;stdin&gt;", line 3, in &lt;module&gt;
 IndexError: list index out of range
 bash: line 43: slack: command not found
 Traceback (most recent call last):
-  File &quot;&lt;stdin&gt;&quot;, line 3, in &lt;module&gt;
+  File "&lt;stdin&gt;", line 3, in &lt;module&gt;
 IndexError: list index out of range
 bash: line 43: github: command not found
 
@@ -2320,7 +2320,7 @@ I’m going to add a compose.noslack.yaml that excludes the Slack service and up
 +      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}
 +      - TRANSPORT=SSE
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;nc&quot;, &quot;-z&quot;, &quot;localhost&quot;, &quot;3001&quot;]
++      test: ["CMD", "nc", "-z", "localhost", "3001"]
 +      interval: 5s
 +      timeout: 3s
 +      retries: 5
@@ -2334,7 +2334,7 @@ I’m going to add a compose.noslack.yaml that excludes the Slack service and up
 +      - GITHUB_REPO_NAME=${GITHUB_REPO_NAME}
 +      - PROJECT_ROOT=${PROJECT_ROOT}
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:3001/health&quot;]
++      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
 +      interval: 30s
 +      timeout: 10s
 +      retries: 3
@@ -2350,7 +2350,7 @@ I’m going to add a compose.noslack.yaml that excludes the Slack service and up
 +      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 +      - GEMINI_API_KEY=${GEMINI_API_KEY}
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:8000/health&quot;]
++      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
 +      interval: 30s
 +      timeout: 10s
 +      retries: 3
@@ -2368,7 +2368,7 @@ I’m going to add a compose.noslack.yaml that excludes the Slack service and up
 +    environment:
 +      - HF_TOKEN=${HF_TOKEN}
 +    healthcheck:
-+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:8000/health&quot;]
++      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
 +      interval: 30s
 +      timeout: 10s
 +      retries: 3
@@ -2378,7 +2378,7 @@ I’m going to add a compose.noslack.yaml that excludes the Slack service and up
 +      context: .
 +      dockerfile: sre_agent/client/Dockerfile
 +    ports:
-+      - &quot;8003:80&quot;
++      - "8003:80"
 +    depends_on:
 +      llama-firewall:
 +        condition: service_healthy
@@ -2549,14 +2549,14 @@ I'll bring up the local stack without Slack first to confirm core services, then
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up --build -d'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up --build -d'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up --build -d'
 ```
 
 ```
-unable to get image &#39;sre-agent-slack&#39;: Cannot connect to the Docker daemon at unix:///Users/chetansingh/.docker/run/docker.sock. Is the docker daemon running?
+unable to get image 'sre-agent-slack': Cannot connect to the Docker daemon at unix:///Users/chetansingh/.docker/run/docker.sock. Is the docker daemon running?
 
 ```
 </details>
@@ -2642,7 +2642,7 @@ Starting the Docker stack now; requesting elevated permission to access the Dock
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up --build -d'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up --build -d'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up --build -d'
@@ -2651,7 +2651,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compos
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [github internal] load build definition from Dockerfile
 #1 transferring dockerfile: 669B 0.0s done
@@ -3069,7 +3069,7 @@ Compose can now delegate builds to bake for better performance.
 #30 [github builder 5/5] RUN --mount=type=cache,target=/root/.npm npm install
 #30 19.81 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 #30 19.86 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
-#30 19.95 npm warn deprecated node-domexception@1.0.0: Use your platform&#39;s native DOMException instead
+#30 19.95 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
 #30 22.60 
 #30 22.60 &gt; @modelcontextprotocol/server-github@0.6.2 prepare
 #30 22.60 &gt; npm run build
@@ -3120,7 +3120,7 @@ Compose can now delegate builds to bake for better performance.
 #21 ...
 
 #37 [github release 6/6] RUN npm ci --ignore-scripts --omit-dev
-#37 1.584 npm warn deprecated node-domexception@1.0.0: Use your platform&#39;s native DOMException instead
+#37 1.584 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
 #37 3.215 
 #37 3.215 added 114 packages, and audited 115 packages in 3s
 #37 3.215 
@@ -3344,7 +3344,7 @@ Compose can now delegate builds to bake for better performance.
 #54 26.81 debconf: (TERM is not set, so the dialog frontend is not usable.)
 #54 26.81 debconf: falling back to frontend: Readline
 #54 26.81 debconf: unable to initialize frontend: Readline
-#54 26.81 debconf: (Can&#39;t locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, &lt;STDIN&gt; line 27.)
+#54 26.81 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, &lt;STDIN&gt; line 27.)
 #54 26.81 debconf: falling back to frontend: Teletype
 #54 26.81 debconf: unable to initialize frontend: Teletype
 #54 26.81 debconf: (This frontend requires a controlling tty.)
@@ -3448,7 +3448,7 @@ Compose can now delegate builds to bake for better performance.
 #55 26.83 debconf: (TERM is not set, so the dialog frontend is not usable.)
 #55 26.83 debconf: falling back to frontend: Readline
 #55 26.83 debconf: unable to initialize frontend: Readline
-#55 26.83 debconf: (Can&#39;t locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, &lt;STDIN&gt; line 27.)
+#55 26.83 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, &lt;STDIN&gt; line 27.)
 #55 26.83 debconf: falling back to frontend: Teletype
 #55 26.83 debconf: unable to initialize frontend: Teletype
 #55 26.83 debconf: (This frontend requires a controlling tty.)
@@ -3961,7 +3961,7 @@ Compose can now delegate builds to bake for better performance.
 #67 13.71 debconf: (TERM is not set, so the dialog frontend is not usable.)
 #67 13.71 debconf: falling back to frontend: Readline
 #67 13.71 debconf: unable to initialize frontend: Readline
-#67 13.71 debconf: (Can&#39;t locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, &lt;STDIN&gt; line 27.)
+#67 13.71 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/aarch64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/aarch64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/aarch64-linux-gnu/perl-base /usr/lib/aarch64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, &lt;STDIN&gt; line 27.)
 #67 13.71 debconf: falling back to frontend: Teletype
 #67 13.71 debconf: unable to initialize frontend: Teletype
 #67 13.71 debconf: (This frontend requires a controlling tty.)
@@ -4318,7 +4318,7 @@ I'm considering how to handle the situation if the user doesn't have an HF token
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml logs --no-log-prefix llama-firewall | tail -n 200'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml logs --no-log-prefix llama-firewall | tail -n 200'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml logs --no-log-prefix llama-firewall | tail -n 200'
@@ -4328,42 +4328,42 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compos
 INFO:     Started server process [1]
 INFO:     Waiting for application startup.
 ERROR:    Traceback (most recent call last):
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_http.py&quot;, line 402, in hf_raise_for_status
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_http.py", line 402, in hf_raise_for_status
     response.raise_for_status()
-  File &quot;/usr/local/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+  File "/usr/local/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
     raise HTTPError(http_error_msg, response=self)
 requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M/resolve/main/config.json
 
 The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/utils/hub.py&quot;, line 479, in cached_files
+  File "/usr/local/lib/python3.12/site-packages/transformers/utils/hub.py", line 479, in cached_files
     hf_hub_download(
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py&quot;, line 114, in _inner_fn
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
     return fn(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 1007, in hf_hub_download
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1007, in hf_hub_download
     return _hf_hub_download_to_cache_dir(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 1114, in _hf_hub_download_to_cache_dir
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1114, in _hf_hub_download_to_cache_dir
     _raise_on_head_call_error(head_call_error, force_download, local_files_only)
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 1655, in _raise_on_head_call_error
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1655, in _raise_on_head_call_error
     raise head_call_error
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 1543, in _get_metadata_or_catch_error
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1543, in _get_metadata_or_catch_error
     metadata = get_hf_file_metadata(
                ^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py&quot;, line 114, in _inner_fn
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
     return fn(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 1460, in get_hf_file_metadata
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 1460, in get_hf_file_metadata
     r = _request_wrapper(
         ^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 283, in _request_wrapper
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 283, in _request_wrapper
     response = _request_wrapper(
                ^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py&quot;, line 307, in _request_wrapper
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/file_download.py", line 307, in _request_wrapper
     hf_raise_for_status(response)
-  File &quot;/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_http.py&quot;, line 419, in hf_raise_for_status
+  File "/usr/local/lib/python3.12/site-packages/huggingface_hub/utils/_http.py", line 419, in hf_raise_for_status
     raise _format(GatedRepoError, message, response) from e
 huggingface_hub.errors.GatedRepoError: 401 Client Error. (Request ID: Root=1-69084a1b-540ad51e0b42268308a19e13;f96ca9e6-907e-4773-a8fb-b9272ebe8653)
 
@@ -4373,33 +4373,33 @@ Access to model meta-llama/Llama-Prompt-Guard-2-86M is restricted. You must have
 The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File &quot;/usr/local/lib/python3.12/site-packages/starlette/routing.py&quot;, line 694, in lifespan
+  File "/usr/local/lib/python3.12/site-packages/starlette/routing.py", line 694, in lifespan
     async with self.lifespan_context(app) as maybe_state:
                ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 210, in __aenter__
+  File "/usr/local/lib/python3.12/contextlib.py", line 210, in __aenter__
     return await anext(self.gen)
            ^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/firewall.py&quot;, line 45, in lifespan
+  File "/app/firewall.py", line 45, in lifespan
     load_models()
-  File &quot;/app/firewall.py&quot;, line 32, in load_models
+  File "/app/firewall.py", line 32, in load_models
     model = AutoModelForSequenceClassification.from_pretrained(model_name)  # type: ignore[no-untyped-call]
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/models/auto/auto_factory.py&quot;, line 549, in from_pretrained
+  File "/usr/local/lib/python3.12/site-packages/transformers/models/auto/auto_factory.py", line 549, in from_pretrained
     config, kwargs = AutoConfig.from_pretrained(
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py&quot;, line 1332, in from_pretrained
+  File "/usr/local/lib/python3.12/site-packages/transformers/models/auto/configuration_auto.py", line 1332, in from_pretrained
     config_dict, unused_kwargs = PretrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/configuration_utils.py&quot;, line 662, in get_config_dict
+  File "/usr/local/lib/python3.12/site-packages/transformers/configuration_utils.py", line 662, in get_config_dict
     config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/configuration_utils.py&quot;, line 721, in _get_config_dict
+  File "/usr/local/lib/python3.12/site-packages/transformers/configuration_utils.py", line 721, in _get_config_dict
     resolved_config_file = cached_file(
                            ^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/utils/hub.py&quot;, line 322, in cached_file
+  File "/usr/local/lib/python3.12/site-packages/transformers/utils/hub.py", line 322, in cached_file
     file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/site-packages/transformers/utils/hub.py&quot;, line 543, in cached_files
+  File "/usr/local/lib/python3.12/site-packages/transformers/utils/hub.py", line 543, in cached_files
     raise OSError(
 OSError: You are trying to access a gated repo.
 Make sure to have access to it at https://huggingface.co/meta-llama/Llama-Prompt-Guard-2-86M.
@@ -4446,18 +4446,18 @@ ERROR:    Application startup failed. Exiting.
 +import requests
 @@
      async def _run_firewall_check(self, text: str, is_tool: bool = False) -&gt; bool:
-         &quot;&quot;&quot;Check text against the Llama Firewall and update messages if blocked.
+         """Check text against the Llama Firewall and update messages if blocked.
 @@
--        logger.info(&quot;Running text through Llama Firewall&quot;)
+-        logger.info("Running text through Llama Firewall")
 +        # Allow disabling the firewall for environments without HF token/models
-+        if os.getenv(&quot;FIREWALL_ENABLED&quot;, &quot;true&quot;).lower() not in (&quot;1&quot;, &quot;true&quot;, &quot;yes&quot;):  # nosec B105
++        if os.getenv("FIREWALL_ENABLED", "true").lower() not in ("1", "true", "yes"):  # nosec B105
 +            return False
 +
-+        logger.info(&quot;Running text through Llama Firewall&quot;)
++        logger.info("Running text through Llama Firewall")
 @@
 -        response = requests.post(
--            &quot;http://llama-firewall:8000/check&quot;,
--            json={&quot;content&quot;: text, &quot;is_tool&quot;: is_tool},
+-            "http://llama-firewall:8000/check",
+-            json={"content": text, "is_tool": is_tool},
 -            timeout=60,
 -        )
 -
@@ -4466,14 +4466,14 @@ ERROR:    Application startup failed. Exiting.
 -        response = response.json()
 +        try:
 +            response = requests.post(
-+                &quot;http://llama-firewall:8000/check&quot;,
-+                json={&quot;content&quot;: text, &quot;is_tool&quot;: is_tool},
++                "http://llama-firewall:8000/check",
++                json={"content": text, "is_tool": is_tool},
 +                timeout=60,
 +            )
 +            response.raise_for_status()
 +            response = response.json()
 +        except Exception as e:  # noqa: BLE001
-+            logger.warning(f&quot;Llama Firewall unavailable, continuing without it: {e}&quot;)
++            logger.warning(f"Llama Firewall unavailable, continuing without it: {e}")
 +            return False
 *** End Patch
 ```
@@ -4514,7 +4514,7 @@ I can start the orchestrator with the `--no-deps` flag and launch the other serv
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up -d slack github prompt-server llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up -d slack github prompt-server llm-server'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up -d slack github prompt-server llm-server'
@@ -4533,7 +4533,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compos
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up -d --no-deps --build orchestrator'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up -d --no-deps --build orchestrator'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compose -f compose.local.yaml up -d --no-deps --build orchestrator'
@@ -4542,7 +4542,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && docker compos
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [orchestrator internal] load build definition from Dockerfile
 #1 transferring dockerfile: 420B done
@@ -4760,14 +4760,14 @@ Compose can now delegate builds to bake for better performance.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'curl -s http://localhost:8003/health'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'curl -s http://localhost:8003/health'</summary>
 
 ```bash
 bash -lc 'curl -s http://localhost:8003/health'
 ```
 
 ```
-{&quot;status&quot;:&quot;OK&quot;,&quot;detail&quot;:&quot;All required MCP server connections are healthy.&quot;,&quot;checked_servers&quot;:[&quot;GITHUB&quot;,&quot;PROMPT&quot;,&quot;SLACK&quot;]}
+{"status":"OK","detail":"All required MCP server connections are healthy.","checked_servers":["GITHUB","PROMPT","SLACK"]}
 ```
 </details>
 </tool-use>
@@ -4788,14 +4788,14 @@ bash -lc 'curl -s http://localhost:8003/health'
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce"'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce"'</summary>
 
 ```bash
 bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce"'
 ```
 
 ```
-{&quot;response_type&quot;:&quot;ephemeral&quot;,&quot;text&quot;:&quot;🔍 Running diagnosis for &#96;salesforce&#96;...&quot;}
+{"response_type":"ephemeral","text":"🔍 Running diagnosis for &#96;salesforce&#96;..."}
 ```
 </details>
 </tool-use>
@@ -4816,7 +4816,7 @@ bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bear
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'docker compose -f compose.local.yaml logs -n 50 orchestrator'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'docker compose -f compose.local.yaml logs -n 50 orchestrator'</summary>
 
 ```bash
 bash -lc 'docker compose -f compose.local.yaml logs -n 50 orchestrator'
@@ -4825,51 +4825,51 @@ bash -lc 'docker compose -f compose.local.yaml logs -n 50 orchestrator'
 ```
 orchestrator-1  |         |     cb_suppress = await cb(*exc_details)
 orchestrator-1  |         |                   ^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |         |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+orchestrator-1  |         |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
 orchestrator-1  |         |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
 orchestrator-1  |         |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |         |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+orchestrator-1  |         |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
 orchestrator-1  |         |     raise BaseExceptionGroup(
 orchestrator-1  |         | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
 orchestrator-1  |         +-+---------------- 1 ----------------
 orchestrator-1  |           | Exception Group Traceback (most recent call last):
-orchestrator-1  |           |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+orchestrator-1  |           |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
 orchestrator-1  |           |     cb_suppress = await cb(*exc_details)
 orchestrator-1  |           |                   ^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |           |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+orchestrator-1  |           |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
 orchestrator-1  |           |     await self.gen.athrow(value)
-orchestrator-1  |           |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+orchestrator-1  |           |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
 orchestrator-1  |           |     async with anyio.create_task_group() as tg:
 orchestrator-1  |           |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |           |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+orchestrator-1  |           |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
 orchestrator-1  |           |     raise BaseExceptionGroup(
 orchestrator-1  |           | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
 orchestrator-1  |           +-+---------------- 1 ----------------
 orchestrator-1  |             | Exception Group Traceback (most recent call last):
-orchestrator-1  |             |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+orchestrator-1  |             |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
 orchestrator-1  |             |     yield read_stream, write_stream
-orchestrator-1  |             |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+orchestrator-1  |             |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
 orchestrator-1  |             |     cb_suppress = await cb(*exc_details)
 orchestrator-1  |             |                   ^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |             |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+orchestrator-1  |             |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
 orchestrator-1  |             |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
 orchestrator-1  |             |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |             |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+orchestrator-1  |             |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
 orchestrator-1  |             |     raise BaseExceptionGroup(
 orchestrator-1  |             | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
 orchestrator-1  |             +-+---------------- 1 ----------------
 orchestrator-1  |               | Traceback (most recent call last):
-orchestrator-1  |               |   File &quot;/app/client.py&quot;, line 381, in run_diagnosis_and_post
+orchestrator-1  |               |   File "/app/client.py", line 381, in run_diagnosis_and_post
 orchestrator-1  |               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-orchestrator-1  |               |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+orchestrator-1  |               |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
 orchestrator-1  |               |     return await fut
 orchestrator-1  |               |            ^^^^^^^^^
-orchestrator-1  |               |   File &quot;/app/client.py&quot;, line 364, in _run_diagnosis
+orchestrator-1  |               |   File "/app/client.py", line 364, in _run_diagnosis
 orchestrator-1  |               |     result = await mcp_client.process_query(
 orchestrator-1  |               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-orchestrator-1  |               |   File &quot;/app/client.py&quot;, line 203, in process_query
+orchestrator-1  |               |   File "/app/client.py", line 203, in process_query
 orchestrator-1  |               |     response.raise_for_status()
-orchestrator-1  |               |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+orchestrator-1  |               |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
 orchestrator-1  |               |     raise HTTPError(http_error_msg, response=self)
 orchestrator-1  |               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
 orchestrator-1  |               +------------------------------------
@@ -4885,7 +4885,7 @@ orchestrator-1  |               +------------------------------------
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server | tail -n 200'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server | tail -n 200'</summary>
 
 ```bash
 bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server | tail -n 200'
@@ -4896,116 +4896,116 @@ INFO:     Started server process [29]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:37460 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:50298 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:60578 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:57134 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:33764 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:46918 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:55610 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:38788 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:43622 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:53986 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:54658 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     172.22.0.2:33012 - &quot;POST /generate HTTP/1.1&quot; 500 Internal Server Error
+INFO:     127.0.0.1:37460 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50298 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60578 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57134 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33764 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46918 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55610 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38788 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43622 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53986 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54658 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.22.0.2:33012 - "POST /generate HTTP/1.1" 500 Internal Server Error
 ERROR:    Exception in ASGI application
 Traceback (most recent call last):
-  File &quot;/app/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py&quot;, line 403, in run_asgi
+  File "/app/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
     result = await app(  # type: ignore[func-returns-value]
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py&quot;, line 60, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
     return await self.app(scope, receive, send)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/applications.py&quot;, line 1054, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
     await super().__call__(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/applications.py&quot;, line 112, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/applications.py", line 112, in __call__
     await self.middleware_stack(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py&quot;, line 187, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 187, in __call__
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py&quot;, line 165, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 165, in __call__
     await self.app(scope, receive, _send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py&quot;, line 62, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 53, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 42, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 714, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 714, in __call__
     await self.middleware_stack(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 734, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 734, in app
     await route.handle(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 288, in handle
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 288, in handle
     await self.app(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 76, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 76, in app
     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 53, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 42, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 73, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 73, in app
     response = await f(request)
                ^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 301, in app
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 301, in app
     raw_response = await run_endpoint_function(
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 214, in run_endpoint_function
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
     return await run_in_threadpool(dependant.call, **values)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py&quot;, line 37, in run_in_threadpool
+  File "/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
     return await anyio.to_thread.run_sync(func)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py&quot;, line 56, in run_sync
+  File "/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 56, in run_sync
     return await get_async_backend().run_sync_in_worker_thread(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 2470, in run_sync_in_worker_thread
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
     return await future
            ^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 967, in run
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 967, in run
     result = context.run(func, *args)
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/main.py&quot;, line 64, in generate
-    return cast(Message, STATE[&quot;client&quot;].generate(payload))
+  File "/app/main.py", line 64, in generate
+    return cast(Message, STATE["client"].generate(payload))
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/utils/clients.py&quot;, line 190, in generate
+  File "/app/utils/clients.py", line 190, in generate
     response = self.client.models.generate_content(
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/models.py&quot;, line 5892, in generate_content
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/models.py", line 5892, in generate_content
     response = self._generate_content(
                ^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/models.py&quot;, line 4832, in _generate_content
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/models.py", line 4832, in _generate_content
     response = self._api_client.request(
                ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py&quot;, line 986, in request
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py", line 986, in request
     response = self._request(http_request, stream=False)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py&quot;, line 879, in _request
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py", line 879, in _request
     return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 475, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 475, in __call__
     do = self.iter(retry_state=retry_state)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 376, in iter
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 376, in iter
     result = action(retry_state)
              ^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 418, in exc_check
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 418, in exc_check
     raise retry_exc.reraise()
           ^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 185, in reraise
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 185, in reraise
     raise self.last_attempt.result()
           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/concurrent/futures/_base.py&quot;, line 449, in result
+  File "/usr/local/lib/python3.12/concurrent/futures/_base.py", line 449, in result
     return self.__get_result()
            ^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/concurrent/futures/_base.py&quot;, line 401, in __get_result
+  File "/usr/local/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
     raise self._exception
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 478, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 478, in __call__
     result = fn(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py&quot;, line 869, in _request_once
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py", line 869, in _request_once
     errors.APIError.raise_for_response(response)
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/errors.py&quot;, line 104, in raise_for_response
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/errors.py", line 104, in raise_for_response
     raise ClientError(status_code, response_json, response)
-google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {&#39;error&#39;: {&#39;code&#39;: 429, &#39;message&#39;: &#39;You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 250\nPlease retry in 12.636196586s.&#39;, &#39;status&#39;: &#39;RESOURCE_EXHAUSTED&#39;, &#39;details&#39;: [{&#39;@type&#39;: &#39;type.googleapis.com/google.rpc.Help&#39;, &#39;links&#39;: [{&#39;description&#39;: &#39;Learn more about Gemini API quotas&#39;, &#39;url&#39;: &#39;https://ai.google.dev/gemini-api/docs/rate-limits&#39;}]}, {&#39;@type&#39;: &#39;type.googleapis.com/google.rpc.QuotaFailure&#39;, &#39;violations&#39;: [{&#39;quotaMetric&#39;: &#39;generativelanguage.googleapis.com/generate_content_free_tier_requests&#39;, &#39;quotaId&#39;: &#39;GenerateRequestsPerDayPerProjectPerModel-FreeTier&#39;, &#39;quotaDimensions&#39;: {&#39;model&#39;: &#39;gemini-2.5-flash&#39;, &#39;location&#39;: &#39;global&#39;}, &#39;quotaValue&#39;: &#39;250&#39;}]}, {&#39;@type&#39;: &#39;type.googleapis.com/google.rpc.RetryInfo&#39;, &#39;retryDelay&#39;: &#39;12s&#39;}]}}
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/usage?tab=rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 250\nPlease retry in 12.636196586s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-2.5-flash', 'location': 'global'}, 'quotaValue': '250'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '12s'}]}}
 
 ```
 </details>
@@ -5024,7 +5024,7 @@ I need to remember that Compose uses environment variables during processing in 
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock MODEL=dummy docker compose -f compose.local.yaml up -d --build llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock MODEL=dummy docker compose -f compose.local.yaml up -d --build llm-server'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock MODEL=dummy docker compose -f compose.local.yaml up -d --build llm-server'
@@ -5033,7 +5033,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [llm-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 563B done
@@ -5104,14 +5104,14 @@ Compose can now delegate builds to bake for better performance.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce"'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce"'</summary>
 
 ```bash
 bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce"'
 ```
 
 ```
-{&quot;response_type&quot;:&quot;ephemeral&quot;,&quot;text&quot;:&quot;🔍 Running diagnosis for &#96;salesforce&#96;...&quot;}
+{"response_type":"ephemeral","text":"🔍 Running diagnosis for &#96;salesforce&#96;..."}
 ```
 </details>
 </tool-use>
@@ -5119,7 +5119,7 @@ bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bear
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 200 orchestrator'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 200 orchestrator'</summary>
 
 ```bash
 bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 200 orchestrator'
@@ -5127,93 +5127,93 @@ bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 200 orche
 
 ```
     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+    |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
     |     raise BaseExceptionGroup(
     | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
     +-+---------------- 1 ----------------
       | Exception Group Traceback (most recent call last):
-      |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+      |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
       |     cb_suppress = await cb(*exc_details)
       |                   ^^^^^^^^^^^^^^^^^^^^^^
-      |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+      |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
       |     await self.gen.athrow(value)
-      |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+      |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
       |     async with anyio.create_task_group() as tg:
       |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-      |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+      |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
       |     raise BaseExceptionGroup(
       | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
       +-+---------------- 1 ----------------
         | Exception Group Traceback (most recent call last):
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+        |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
         |     yield read_stream, write_stream
-        |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+        |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
         |     cb_suppress = await cb(*exc_details)
         |                   ^^^^^^^^^^^^^^^^^^^^^^
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+        |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
         |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
         |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+        |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
         |     raise BaseExceptionGroup(
         | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
         +-+---------------- 1 ----------------
           | Exception Group Traceback (most recent call last):
-          |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+          |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
           |     cb_suppress = await cb(*exc_details)
           |                   ^^^^^^^^^^^^^^^^^^^^^^
-          |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+          |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
           |     await self.gen.athrow(value)
-          |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+          |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
           |     async with anyio.create_task_group() as tg:
           |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-          |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+          |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
           |     raise BaseExceptionGroup(
           | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
           +-+---------------- 1 ----------------
             | Exception Group Traceback (most recent call last):
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
             |     yield read_stream, write_stream
-            |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+            |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
             |     cb_suppress = await cb(*exc_details)
             |                   ^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
             |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
             |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
             |     raise BaseExceptionGroup(
             | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
             +-+---------------- 1 ----------------
               | Traceback (most recent call last):
-              |   File &quot;/app/client.py&quot;, line 381, in run_diagnosis_and_post
+              |   File "/app/client.py", line 381, in run_diagnosis_and_post
               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-              |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+              |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
               |     return await fut
               |            ^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 364, in _run_diagnosis
+              |   File "/app/client.py", line 364, in _run_diagnosis
               |     result = await mcp_client.process_query(
               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 203, in process_query
+              |   File "/app/client.py", line 203, in process_query
               |     response.raise_for_status()
-              |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+              |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
               |     raise HTTPError(http_error_msg, response=self)
               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
               +------------------------------------
 2025-11-03 06:31:42 [[92mINFO[0m]: Request authentication successful.
 2025-11-03 06:31:42 [[92mINFO[0m]: Received diagnose request for service: salesforce
-INFO:     192.168.65.1:47467 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:47467 - "POST /diagnose HTTP/1.1" 200 OK
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-03 06:31:42 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 06:31:42 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-03 06:31:42 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-03 06:31:42 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-03 06:31:42 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-03 06:31:42 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 06:31:42 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-03 06:31:42 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-03 06:31:42 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-03 06:31:42 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-03 06:31:42 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:31:42 [[92mINFO[0m]: Creating MCP client session
@@ -5221,108 +5221,108 @@ INFO:     192.168.65.1:47467 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 2025-11-03 06:31:42 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-03 06:31:42 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-03 06:31:42 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-03 06:31:42 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
+2025-11-03 06:31:42 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
 2025-11-03 06:31:42 [[92mINFO[0m]: Running text through Llama Firewall
-2025-11-03 06:31:42 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host=&#39;llama-firewall&#39;, port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError(&quot;&lt;urllib3.connection.HTTPConnection object at 0xffff94aa5220&gt;: Failed to resolve &#39;llama-firewall&#39; ([Errno -2] Name or service not known)&quot;))
+2025-11-03 06:31:42 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host='llama-firewall', port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError("&lt;urllib3.connection.HTTPConnection object at 0xffff94aa5220&gt;: Failed to resolve 'llama-firewall' ([Errno -2] Name or service not known)"))
 2025-11-03 06:31:42 [[92mINFO[0m]: Sending request to the LLM
 2025-11-03 06:31:42 [[91mERROR[0m]: Error during background diagnosis for salesforce: unhandled errors in a TaskGroup (1 sub-exception)
   + Exception Group Traceback (most recent call last):
-  |   File &quot;/app/client.py&quot;, line 338, in run_diagnosis_and_post
+  |   File "/app/client.py", line 338, in run_diagnosis_and_post
   |     async with MCPClient() as client:
   |                ^^^^^^^^^^^
-  |   File &quot;/app/client.py&quot;, line 69, in __aexit__
+  |   File "/app/client.py", line 69, in __aexit__
   |     await self.exit_stack.__aexit__(exc_type, exc_val, exc_tb)
-  |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 754, in __aexit__
+  |   File "/usr/local/lib/python3.12/contextlib.py", line 754, in __aexit__
   |     raise exc_details[1]
-  |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+  |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
   |     cb_suppress = await cb(*exc_details)
   |                   ^^^^^^^^^^^^^^^^^^^^^^
-  |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+  |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
   |     await self.gen.athrow(value)
-  |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+  |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
   |     async with anyio.create_task_group() as tg:
   |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+  |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
   |     raise BaseExceptionGroup(
   | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   +-+---------------- 1 ----------------
     | Exception Group Traceback (most recent call last):
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+    |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
     |     yield read_stream, write_stream
-    |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
     |     cb_suppress = await cb(*exc_details)
     |                   ^^^^^^^^^^^^^^^^^^^^^^
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+    |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
     |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+    |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
     |     raise BaseExceptionGroup(
     | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
     +-+---------------- 1 ----------------
       | Exception Group Traceback (most recent call last):
-      |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+      |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
       |     cb_suppress = await cb(*exc_details)
       |                   ^^^^^^^^^^^^^^^^^^^^^^
-      |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+      |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
       |     await self.gen.athrow(value)
-      |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+      |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
       |     async with anyio.create_task_group() as tg:
       |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-      |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+      |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
       |     raise BaseExceptionGroup(
       | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
       +-+---------------- 1 ----------------
         | Exception Group Traceback (most recent call last):
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+        |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
         |     yield read_stream, write_stream
-        |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+        |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
         |     cb_suppress = await cb(*exc_details)
         |                   ^^^^^^^^^^^^^^^^^^^^^^
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+        |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
         |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
         |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+        |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
         |     raise BaseExceptionGroup(
         | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
         +-+---------------- 1 ----------------
           | Exception Group Traceback (most recent call last):
-          |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+          |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
           |     cb_suppress = await cb(*exc_details)
           |                   ^^^^^^^^^^^^^^^^^^^^^^
-          |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+          |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
           |     await self.gen.athrow(value)
-          |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+          |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
           |     async with anyio.create_task_group() as tg:
           |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-          |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+          |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
           |     raise BaseExceptionGroup(
           | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
           +-+---------------- 1 ----------------
             | Exception Group Traceback (most recent call last):
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
             |     yield read_stream, write_stream
-            |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+            |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
             |     cb_suppress = await cb(*exc_details)
             |                   ^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
             |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
             |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
             |     raise BaseExceptionGroup(
             | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
             +-+---------------- 1 ----------------
               | Traceback (most recent call last):
-              |   File &quot;/app/client.py&quot;, line 381, in run_diagnosis_and_post
+              |   File "/app/client.py", line 381, in run_diagnosis_and_post
               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-              |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+              |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
               |     return await fut
               |            ^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 364, in _run_diagnosis
+              |   File "/app/client.py", line 364, in _run_diagnosis
               |     result = await mcp_client.process_query(
               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 203, in process_query
+              |   File "/app/client.py", line 203, in process_query
               |     response.raise_for_status()
-              |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+              |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
               |     raise HTTPError(http_error_msg, response=self)
               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
               +------------------------------------
@@ -5338,7 +5338,7 @@ INFO:     192.168.65.1:47467 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server | tail -n 60'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server | tail -n 60'</summary>
 
 ```bash
 bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server | tail -n 60'
@@ -5347,64 +5347,64 @@ bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix llm-server |
 ```
     result = await app(  # type: ignore[func-returns-value]
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py&quot;, line 60, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
     return await self.app(scope, receive, send)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/applications.py&quot;, line 1054, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
     await super().__call__(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/applications.py&quot;, line 112, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/applications.py", line 112, in __call__
     await self.middleware_stack(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py&quot;, line 187, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 187, in __call__
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py&quot;, line 165, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 165, in __call__
     await self.app(scope, receive, _send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py&quot;, line 62, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 53, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 42, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 714, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 714, in __call__
     await self.middleware_stack(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 734, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 734, in app
     await route.handle(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 288, in handle
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 288, in handle
     await self.app(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 76, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 76, in app
     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 53, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 42, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 73, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 73, in app
     response = await f(request)
                ^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 301, in app
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 301, in app
     raw_response = await run_endpoint_function(
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 214, in run_endpoint_function
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
     return await run_in_threadpool(dependant.call, **values)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py&quot;, line 37, in run_in_threadpool
+  File "/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
     return await anyio.to_thread.run_sync(func)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py&quot;, line 56, in run_sync
+  File "/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 56, in run_sync
     return await get_async_backend().run_sync_in_worker_thread(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 2470, in run_sync_in_worker_thread
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
     return await future
            ^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 967, in run
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 967, in run
     result = context.run(func, *args)
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/main.py&quot;, line 64, in generate
-    return cast(Message, STATE[&quot;client&quot;].generate(payload))
+  File "/app/main.py", line 64, in generate
+    return cast(Message, STATE["client"].generate(payload))
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/utils/clients.py&quot;, line 63, in generate
-    f&quot;Token usage - Input: {response.usage.input_tokens}, &quot;
+  File "/app/utils/clients.py", line 63, in generate
+    f"Token usage - Input: {response.usage.input_tokens}, "
                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: &#39;NoneType&#39; object has no attribute &#39;input_tokens&#39;
-INFO:     127.0.0.1:58772 - &quot;GET /health HTTP/1.1&quot; 200 OK
+AttributeError: 'NoneType' object has no attribute 'input_tokens'
+INFO:     127.0.0.1:58772 - "GET /health HTTP/1.1" 200 OK
 
 ```
 </details>
@@ -5428,25 +5428,25 @@ INFO:     127.0.0.1:58772 - &quot;GET /health HTTP/1.1&quot; 200 OK
  class DummyClient(BaseClient):
 @@
      def generate(self, payload: TextGenerationPayload) -&gt; Message:
-         &quot;&quot;&quot;A concrete generate method which returns a mocked response.&quot;&quot;&quot;
-         msg = &quot;This is a template response from a dummy model.&quot;
-         content: Content = [TextBlock(text=msg, type=&quot;text&quot;)]
+         """A concrete generate method which returns a mocked response."""
+         msg = "This is a template response from a dummy model."
+         content: Content = [TextBlock(text=msg, type="text")]
  
          response = Message(
-             id=&quot;0&quot;,
+             id="0",
              model=self.settings.model,
              content=content,
-             role=&quot;assistant&quot;,
-             stop_reason=&quot;end_turn&quot;,
+             role="assistant",
+             stop_reason="end_turn",
              usage=None,
          )
  
 -        logger.info(
--            f&quot;Token usage - Input: {response.usage.input_tokens}, &quot;
--            f&quot;Output: {response.usage.output_tokens}, &quot;
+-            f"Token usage - Input: {response.usage.input_tokens}, "
+-            f"Output: {response.usage.output_tokens}, "
 -        )
 +        # No token usage for dummy client
-+        logger.info(&quot;Dummy LLM response generated&quot;)
++        logger.info("Dummy LLM response generated")
          return response
 *** End Patch
 ```
@@ -5474,7 +5474,7 @@ Lint results
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock MODEL=dummy docker compose -f compose.local.yaml up -d --build llm-server && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 10 llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock MODEL=dummy docker compose -f compose.local.yaml up -d --build llm-server && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 10 llm-server'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock MODEL=dummy docker compose -f compose.local.yaml up -d --build llm-server && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 10 llm-server'
@@ -5483,7 +5483,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=mock
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [llm-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 563B done
@@ -5610,46 +5610,46 @@ Compose can now delegate builds to bake for better performance.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 1 && docker compose -f compose.local.yaml logs --no-log-prefix -n 50 orchestrator'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 1 && docker compose -f compose.local.yaml logs --no-log-prefix -n 50 orchestrator'</summary>
 
 ```bash
 bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 1 && docker compose -f compose.local.yaml logs --no-log-prefix -n 50 orchestrator'
 ```
 
 ```
-{&quot;response_type&quot;:&quot;ephemeral&quot;,&quot;text&quot;:&quot;🔍 Running diagnosis for &#96;salesforce&#96;...&quot;}            | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+{"response_type":"ephemeral","text":"🔍 Running diagnosis for &#96;salesforce&#96;..."}            | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
             +-+---------------- 1 ----------------
               | Traceback (most recent call last):
-              |   File &quot;/app/client.py&quot;, line 381, in run_diagnosis_and_post
+              |   File "/app/client.py", line 381, in run_diagnosis_and_post
               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-              |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+              |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
               |     return await fut
               |            ^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 364, in _run_diagnosis
+              |   File "/app/client.py", line 364, in _run_diagnosis
               |     result = await mcp_client.process_query(
               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 203, in process_query
+              |   File "/app/client.py", line 203, in process_query
               |     response.raise_for_status()
-              |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+              |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
               |     raise HTTPError(http_error_msg, response=self)
               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
               +------------------------------------
 2025-11-03 06:33:35 [[92mINFO[0m]: Request authentication successful.
 2025-11-03 06:33:35 [[92mINFO[0m]: Received diagnose request for service: salesforce
-INFO:     192.168.65.1:36715 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:36715 - "POST /diagnose HTTP/1.1" 200 OK
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-03 06:33:35 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-03 06:33:35 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-03 06:33:35 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCP client session
@@ -5657,9 +5657,9 @@ INFO:     192.168.65.1:36715 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-03 06:33:35 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-03 06:33:35 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
+2025-11-03 06:33:35 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
 2025-11-03 06:33:35 [[92mINFO[0m]: Running text through Llama Firewall
-2025-11-03 06:33:35 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host=&#39;llama-firewall&#39;, port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError(&quot;&lt;urllib3.connection.HTTPConnection object at 0xffff9496d790&gt;: Failed to resolve &#39;llama-firewall&#39; ([Errno -2] Name or service not known)&quot;))
+2025-11-03 06:33:35 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host='llama-firewall', port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError("&lt;urllib3.connection.HTTPConnection object at 0xffff9496d790&gt;: Failed to resolve 'llama-firewall' ([Errno -2] Name or service not known)"))
 2025-11-03 06:33:35 [[92mINFO[0m]: Sending request to the LLM
 2025-11-03 06:33:35 [[92mINFO[0m]: LLM request took 0.07 seconds
 2025-11-03 06:33:35 [[92mINFO[0m]: Total process_query execution took 0.08 seconds
@@ -5747,7 +5747,7 @@ I'll switch the LLM back to Gemini and restart the llm-server, then trigger a ne
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemini MODEL=${MODEL:-gemini-1.5-flash} MAX_TOKENS=512 docker compose -f compose.local.yaml up -d --build llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemini MODEL=${MODEL:-gemini-1.5-flash} MAX_TOKENS=512 docker compose -f compose.local.yaml up -d --build llm-server'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemini MODEL=${MODEL:-gemini-1.5-flash} MAX_TOKENS=512 docker compose -f compose.local.yaml up -d --build llm-server'
@@ -5756,7 +5756,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemi
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [llm-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 563B 0.0s done
@@ -5836,29 +5836,29 @@ Compose can now delegate builds to bake for better performance.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 60 orchestrator'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 60 orchestrator'</summary>
 
 ```bash
 bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 60 orchestrator'
 ```
 
 ```
-{&quot;response_type&quot;:&quot;ephemeral&quot;,&quot;text&quot;:&quot;🔍 Running diagnosis for &#96;salesforce&#96;...&quot;}2025-11-03 06:33:35 [[92mINFO[0m]: Request authentication successful.
+{"response_type":"ephemeral","text":"🔍 Running diagnosis for &#96;salesforce&#96;..."}2025-11-03 06:33:35 [[92mINFO[0m]: Request authentication successful.
 2025-11-03 06:33:35 [[92mINFO[0m]: Received diagnose request for service: salesforce
-INFO:     192.168.65.1:36715 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:36715 - "POST /diagnose HTTP/1.1" 200 OK
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-03 06:33:35 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-03 06:33:35 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-03 06:33:35 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 06:33:35 [[92mINFO[0m]: Creating MCP client session
@@ -5866,9 +5866,9 @@ INFO:     192.168.65.1:36715 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 2025-11-03 06:33:35 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-03 06:33:35 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-03 06:33:35 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-03 06:33:35 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
+2025-11-03 06:33:35 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
 2025-11-03 06:33:35 [[92mINFO[0m]: Running text through Llama Firewall
-2025-11-03 06:33:35 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host=&#39;llama-firewall&#39;, port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError(&quot;&lt;urllib3.connection.HTTPConnection object at 0xffff9496d790&gt;: Failed to resolve &#39;llama-firewall&#39; ([Errno -2] Name or service not known)&quot;))
+2025-11-03 06:33:35 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host='llama-firewall', port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError("&lt;urllib3.connection.HTTPConnection object at 0xffff9496d790&gt;: Failed to resolve 'llama-firewall' ([Errno -2] Name or service not known)"))
 2025-11-03 06:33:35 [[92mINFO[0m]: Sending request to the LLM
 2025-11-03 06:33:35 [[92mINFO[0m]: LLM request took 0.07 seconds
 2025-11-03 06:33:35 [[92mINFO[0m]: Total process_query execution took 0.08 seconds
@@ -5878,20 +5878,20 @@ INFO:     192.168.65.1:36715 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 2025-11-03 06:33:35 [[92mINFO[0m]: Diagnosis result for salesforce: This is a template response from a dummy model.
 2025-11-03 07:24:48 [[92mINFO[0m]: Request authentication successful.
 2025-11-03 07:24:48 [[92mINFO[0m]: Received diagnose request for service: salesforce
-INFO:     192.168.65.1:44451 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:44451 - "POST /diagnose HTTP/1.1" 200 OK
 2025-11-03 07:24:48 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-03 07:24:48 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-03 07:24:48 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 07:24:48 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 07:24:48 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-03 07:24:48 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-03 07:24:48 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-03 07:24:48 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-03 07:24:48 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-03 07:24:48 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 07:24:49 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 07:24:49 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-03 07:24:49 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-03 07:24:49 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-03 07:24:49 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-03 07:24:49 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-03 07:24:49 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 07:24:49 [[92mINFO[0m]: Creating MCP client session
@@ -5899,9 +5899,9 @@ INFO:     192.168.65.1:44451 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 2025-11-03 07:24:49 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-03 07:24:49 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-03 07:24:49 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-03 07:24:49 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
+2025-11-03 07:24:49 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
 2025-11-03 07:24:49 [[92mINFO[0m]: Running text through Llama Firewall
-2025-11-03 07:24:49 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host=&#39;llama-firewall&#39;, port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError(&quot;&lt;urllib3.connection.HTTPConnection object at 0xffff94a606b0&gt;: Failed to resolve &#39;llama-firewall&#39; ([Errno -2] Name or service not known)&quot;))
+2025-11-03 07:24:49 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host='llama-firewall', port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError("&lt;urllib3.connection.HTTPConnection object at 0xffff94a606b0&gt;: Failed to resolve 'llama-firewall' ([Errno -2] Name or service not known)"))
 2025-11-03 07:24:49 [[92mINFO[0m]: Sending request to the LLM
 
 ```
@@ -5918,113 +5918,113 @@ I realize that I didn't fetch the llm-server logs to see if the Gemini 429 error
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 100 llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 100 llm-server'</summary>
 
 ```bash
 bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 100 llm-server'
 ```
 
 ```
-INFO:     127.0.0.1:34600 - &quot;GET /health HTTP/1.1&quot; 200 OK
-INFO:     172.22.0.2:43158 - &quot;POST /generate HTTP/1.1&quot; 500 Internal Server Error
+INFO:     127.0.0.1:34600 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.22.0.2:43158 - "POST /generate HTTP/1.1" 500 Internal Server Error
 ERROR:    Exception in ASGI application
 Traceback (most recent call last):
-  File &quot;/app/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py&quot;, line 403, in run_asgi
+  File "/app/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
     result = await app(  # type: ignore[func-returns-value]
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py&quot;, line 60, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
     return await self.app(scope, receive, send)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/applications.py&quot;, line 1054, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
     await super().__call__(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/applications.py&quot;, line 112, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/applications.py", line 112, in __call__
     await self.middleware_stack(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py&quot;, line 187, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 187, in __call__
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py&quot;, line 165, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 165, in __call__
     await self.app(scope, receive, _send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py&quot;, line 62, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 53, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 42, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 714, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 714, in __call__
     await self.middleware_stack(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 734, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 734, in app
     await route.handle(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 288, in handle
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 288, in handle
     await self.app(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 76, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 76, in app
     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 53, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py&quot;, line 42, in wrapped_app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/routing.py&quot;, line 73, in app
+  File "/app/.venv/lib/python3.12/site-packages/starlette/routing.py", line 73, in app
     response = await f(request)
                ^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 301, in app
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 301, in app
     raw_response = await run_endpoint_function(
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 214, in run_endpoint_function
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
     return await run_in_threadpool(dependant.call, **values)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py&quot;, line 37, in run_in_threadpool
+  File "/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
     return await anyio.to_thread.run_sync(func)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py&quot;, line 56, in run_sync
+  File "/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 56, in run_sync
     return await get_async_backend().run_sync_in_worker_thread(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 2470, in run_sync_in_worker_thread
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
     return await future
            ^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 967, in run
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 967, in run
     result = context.run(func, *args)
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/main.py&quot;, line 64, in generate
-    return cast(Message, STATE[&quot;client&quot;].generate(payload))
+  File "/app/main.py", line 64, in generate
+    return cast(Message, STATE["client"].generate(payload))
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/utils/clients.py&quot;, line 188, in generate
+  File "/app/utils/clients.py", line 188, in generate
     response = self.client.models.generate_content(
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/models.py&quot;, line 5892, in generate_content
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/models.py", line 5892, in generate_content
     response = self._generate_content(
                ^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/models.py&quot;, line 4832, in _generate_content
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/models.py", line 4832, in _generate_content
     response = self._api_client.request(
                ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py&quot;, line 986, in request
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py", line 986, in request
     response = self._request(http_request, stream=False)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py&quot;, line 879, in _request
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py", line 879, in _request
     return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 475, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 475, in __call__
     do = self.iter(retry_state=retry_state)
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 376, in iter
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 376, in iter
     result = action(retry_state)
              ^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 418, in exc_check
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 418, in exc_check
     raise retry_exc.reraise()
           ^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 185, in reraise
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 185, in reraise
     raise self.last_attempt.result()
           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/concurrent/futures/_base.py&quot;, line 449, in result
+  File "/usr/local/lib/python3.12/concurrent/futures/_base.py", line 449, in result
     return self.__get_result()
            ^^^^^^^^^^^^^^^^^^^
-  File &quot;/usr/local/lib/python3.12/concurrent/futures/_base.py&quot;, line 401, in __get_result
+  File "/usr/local/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
     raise self._exception
-  File &quot;/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py&quot;, line 478, in __call__
+  File "/app/.venv/lib/python3.12/site-packages/tenacity/__init__.py", line 478, in __call__
     result = fn(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py&quot;, line 869, in _request_once
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/_api_client.py", line 869, in _request_once
     errors.APIError.raise_for_response(response)
-  File &quot;/app/.venv/lib/python3.12/site-packages/google/genai/errors.py&quot;, line 104, in raise_for_response
+  File "/app/.venv/lib/python3.12/site-packages/google/genai/errors.py", line 104, in raise_for_response
     raise ClientError(status_code, response_json, response)
-google.genai.errors.ClientError: 404 NOT_FOUND. {&#39;error&#39;: {&#39;code&#39;: 404, &#39;message&#39;: &#39;models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.&#39;, &#39;status&#39;: &#39;NOT_FOUND&#39;}}
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
 
 ```
 </details>
@@ -6040,7 +6040,7 @@ I’m dealing with a Gemini API version mismatch because the google-genai librar
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemini MODEL=gemini-2.0-flash MAX_TOKENS=512 docker compose -f compose.local.yaml up -d --build llm-server && sleep 1 && docker compose -f compose.local.yaml logs --no-log-prefix -n 10 llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemini MODEL=gemini-2.0-flash MAX_TOKENS=512 docker compose -f compose.local.yaml up -d --build llm-server && sleep 1 && docker compose -f compose.local.yaml logs --no-log-prefix -n 10 llm-server'</summary>
 
 ```bash
 bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemini MODEL=gemini-2.0-flash MAX_TOKENS=512 docker compose -f compose.local.yaml up -d --build llm-server && sleep 1 && docker compose -f compose.local.yaml logs --no-log-prefix -n 10 llm-server'
@@ -6049,7 +6049,7 @@ bash -lc 'cd "/Users/chetansingh/Documents/Hackathon/sre-agent" && PROVIDER=gemi
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [llm-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 563B done
@@ -6117,14 +6117,14 @@ Compose can now delegate builds to bake for better performance.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 100 llm-server'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 100 llm-server'</summary>
 
 ```bash
 bash -lc 'curl -s -X POST http://localhost:8003/diagnose -H "Authorization: Bearer ${DEV_BEARER_TOKEN:-dev-token-123}" -H "Content-Type: application/x-www-form-urlencoded" --data "text=salesforce" && sleep 2 && docker compose -f compose.local.yaml logs --no-log-prefix -n 100 llm-server'
 ```
 
 ```
-{&quot;response_type&quot;:&quot;ephemeral&quot;,&quot;text&quot;:&quot;🔍 Running diagnosis for &#96;salesforce&#96;...&quot;}INFO:     Started server process [24]
+{"response_type":"ephemeral","text":"🔍 Running diagnosis for &#96;salesforce&#96;..."}INFO:     Started server process [24]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
@@ -6136,7 +6136,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 120 orchestrator'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 120 orchestrator'</summary>
 
 ```bash
 bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 120 orchestrator'
@@ -6145,106 +6145,106 @@ bash -lc 'docker compose -f compose.local.yaml logs --no-log-prefix -n 120 orche
 ```
   |     async with anyio.create_task_group() as tg:
   |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+  |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
   |     raise BaseExceptionGroup(
   | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   +-+---------------- 1 ----------------
     | Exception Group Traceback (most recent call last):
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+    |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
     |     yield read_stream, write_stream
-    |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+    |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
     |     cb_suppress = await cb(*exc_details)
     |                   ^^^^^^^^^^^^^^^^^^^^^^
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+    |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
     |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+    |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
     |     raise BaseExceptionGroup(
     | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
     +-+---------------- 1 ----------------
       | Exception Group Traceback (most recent call last):
-      |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+      |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
       |     cb_suppress = await cb(*exc_details)
       |                   ^^^^^^^^^^^^^^^^^^^^^^
-      |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+      |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
       |     await self.gen.athrow(value)
-      |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+      |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
       |     async with anyio.create_task_group() as tg:
       |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-      |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+      |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
       |     raise BaseExceptionGroup(
       | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
       +-+---------------- 1 ----------------
         | Exception Group Traceback (most recent call last):
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+        |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
         |     yield read_stream, write_stream
-        |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+        |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
         |     cb_suppress = await cb(*exc_details)
         |                   ^^^^^^^^^^^^^^^^^^^^^^
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+        |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
         |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
         |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+        |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
         |     raise BaseExceptionGroup(
         | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
         +-+---------------- 1 ----------------
           | Exception Group Traceback (most recent call last):
-          |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+          |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
           |     cb_suppress = await cb(*exc_details)
           |                   ^^^^^^^^^^^^^^^^^^^^^^
-          |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 231, in __aexit__
+          |   File "/usr/local/lib/python3.12/contextlib.py", line 231, in __aexit__
           |     await self.gen.athrow(value)
-          |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 54, in sse_client
+          |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 54, in sse_client
           |     async with anyio.create_task_group() as tg:
           |                ^^^^^^^^^^^^^^^^^^^^^^^^^
-          |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+          |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
           |     raise BaseExceptionGroup(
           | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
           +-+---------------- 1 ----------------
             | Exception Group Traceback (most recent call last):
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py&quot;, line 155, in sse_client
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/client/sse.py", line 155, in sse_client
             |     yield read_stream, write_stream
-            |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+            |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
             |     cb_suppress = await cb(*exc_details)
             |                   ^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
             |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
             |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
             |     raise BaseExceptionGroup(
             | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
             +-+---------------- 1 ----------------
               | Traceback (most recent call last):
-              |   File &quot;/app/client.py&quot;, line 381, in run_diagnosis_and_post
+              |   File "/app/client.py", line 381, in run_diagnosis_and_post
               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-              |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+              |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
               |     return await fut
               |            ^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 364, in _run_diagnosis
+              |   File "/app/client.py", line 364, in _run_diagnosis
               |     result = await mcp_client.process_query(
               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 203, in process_query
+              |   File "/app/client.py", line 203, in process_query
               |     response.raise_for_status()
-              |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+              |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
               |     raise HTTPError(http_error_msg, response=self)
               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
               +------------------------------------
 2025-11-03 07:25:46 [[92mINFO[0m]: Request authentication successful.
 2025-11-03 07:25:46 [[92mINFO[0m]: Received diagnose request for service: salesforce
-INFO:     192.168.65.1:37877 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:37877 - "POST /diagnose HTTP/1.1" 200 OK
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-03 07:25:46 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 07:25:46 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-03 07:25:46 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-03 07:25:46 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-03 07:25:46 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-03 07:25:46 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating MCP client session
 2025-11-03 07:25:46 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-03 07:25:46 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-03 07:25:46 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-03 07:25:46 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-03 07:25:46 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating SSE client context
 2025-11-03 07:25:46 [[92mINFO[0m]: Creating MCP client session
@@ -6252,16 +6252,16 @@ INFO:     192.168.65.1:37877 - &quot;POST /diagnose HTTP/1.1&quot; 200 OK
 2025-11-03 07:25:46 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-03 07:25:46 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-03 07:25:46 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-03 07:25:46 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
+2025-11-03 07:25:46 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
 2025-11-03 07:25:46 [[92mINFO[0m]: Running text through Llama Firewall
-2025-11-03 07:25:46 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host=&#39;llama-firewall&#39;, port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError(&quot;&lt;urllib3.connection.HTTPConnection object at 0xffff94c39af0&gt;: Failed to resolve &#39;llama-firewall&#39; ([Errno -2] Name or service not known)&quot;))
+2025-11-03 07:25:46 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host='llama-firewall', port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError("&lt;urllib3.connection.HTTPConnection object at 0xffff94c39af0&gt;: Failed to resolve 'llama-firewall' ([Errno -2] Name or service not known)"))
 2025-11-03 07:25:46 [[92mINFO[0m]: Sending request to the LLM
 2025-11-03 07:25:51 [[92mINFO[0m]: LLM request took 5.00 seconds
 2025-11-03 07:25:51 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
 2025-11-03 07:25:51 [[92mINFO[0m]: Running text through Llama Firewall
-2025-11-03 07:25:51 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host=&#39;llama-firewall&#39;, port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError(&quot;&lt;urllib3.connection.HTTPConnection object at 0xffff94c67890&gt;: Failed to resolve &#39;llama-firewall&#39; ([Errno -2] Name or service not known)&quot;))
-2025-11-03 07:25:51 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/salesforce_integration.py&#39;}
-2025-11-03 07:25:52 [[92mINFO[0m]: Tool &#39;get_file_contents&#39; failed with error: Not Found: Resource not found: Not Found. Tool args were: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/salesforce_integration.py&#39;}. Check the arguments and try again fixing the error.
+2025-11-03 07:25:51 [[93mWARNING[0m]: Llama Firewall unavailable, continuing without it: HTTPConnectionPool(host='llama-firewall', port=8000): Max retries exceeded with url: /check (Caused by NameResolutionError("&lt;urllib3.connection.HTTPConnection object at 0xffff94c67890&gt;: Failed to resolve 'llama-firewall' ([Errno -2] Name or service not known)"))
+2025-11-03 07:25:51 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/salesforce_integration.py'}
+2025-11-03 07:25:52 [[92mINFO[0m]: Tool 'get_file_contents' failed with error: Not Found: Resource not found: Not Found. Tool args were: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/salesforce_integration.py'}. Check the arguments and try again fixing the error.
 2025-11-03 07:25:52 [[92mINFO[0m]: Sending request to the LLM
 
 ```
@@ -6825,62 +6825,62 @@ Parameters:
 
 ```json
 {
-  &quot;plan&quot;: &quot;# Event-driven SRE Agent PoC (Loki + Grafana + Qdrant)\n\n## Flow for a beginner (end-to-end)\n1. Your app writes logs\n   - App prints to stdout or a log file (e.g., JSON lines with fields like level, service, msg).\n2. Promtail ships the logs\n   - A small Promtail container tails your app’s logs, labels them (service, env), and pushes to Loki.\n3. Loki stores logs\n   - Loki ingests, indexes labels (cheap), and stores log chunks; it’s built for logQL queries.\n4. Grafana watches logs\n   - Grafana connects to Loki; you create a simple alert rule (logQL) like: count of level=\&quot;error\&quot; in 5m for service=\&quot;salesforce\&quot; &gt; 1.\n5. Alert → Webhook trigger\n   - When the rule fires, Grafana sends a webhook payload to the agent’s new /alerts endpoint with: service label, alert name, sample error lines, time window.\n6. Orchestrator starts the agent\n   - Orchestrator maps the alert to an internal “diagnose request” (service + context). No manual slash command.\n7. RAG enrichment (Qdrant, small and free)\n   - The agent embeds the alert text and searches Qdrant for similar past incidents/postmortems/snippets; top results are added to the prompt.\n8. LLM plans and acts\n   - Prompt server provides the repo context (org/repo/PROJECT_ROOT). LLM (Gemini) decides which tools to use: GitHub code lookup, create issue/PR, and Slack summary.\n9. Single outcome\n   - The agent posts one Slack summary, creates one GitHub issue (and optionally a PR) with repro steps and proposed fix.\n10. Learn for next time\n   - The final summary is embedded and stored in Qdrant so similar incidents get better over time (simple RAG loop).\n\n## What each Docker service does\n- loki: Log database (receives from Promtail, serves queries to Grafana).\n- promtail: Tails your app logs and pushes them to Loki with labels (service, env).\n- grafana: UI + alerting; evaluates logQL rules; sends webhook to the agent.\n- qdrant: Lightweight vector DB for incident/postmortem embeddings.\n- orchestrator: Your FastAPI MCP client; now with /alerts (webhook) and /diagnose.\n- prompt-server: Supplies the fixed diagnosis prompt and repo context.\n- llm-server: Talks to Gemini (or Anthropic) to plan tool usage.\n- github (MCP): Tools to read files, create issues/PRs.\n- slack (MCP): Tools to post a single summary.\n- (optional) firewall: Can be disabled if you don’t have HF model access.\n\n## Data and event contracts\n- Promtail labels on each log line\n  - service: e.g., \&quot;salesforce\&quot;\n  - env: e.g., \&quot;dev\&quot;\n  - level: e.g., \&quot;error\&quot;\n- Grafana alert (logQL example)\n  - expr: sum(count_over_time({service=\&quot;salesforce\&quot;, level=\&quot;error\&quot;}[5m])) &gt; 1\n  - webhook body (subset): { alert: name, service: \&quot;salesforce\&quot;, window: \&quot;5m\&quot;, samples: [\&quot;Error: KeyError: priority…\&quot;], fired_at: ts }\n- Orchestrator /alerts mapping\n  - service → diagnose target, samples/window → context, alert name → title; posts internally to LLM.\n- RAG (Qdrant)\n  - upsert on completion: {embedding, summary, labels: [service, error_type, commit]}\n  - query on start: top-K similar to alert text + recent error lines\n\n## Security, reliability basics\n- Webhook secret validation (shared token); simple rate limit and 60–120s cooldown per service (dedup storm control).\n- Idempotency key: alert fingerprint (service + rule + window start) to avoid duplicate runs.\n- Logs: All decisions and tool calls recorded in orchestrator logs; single Slack message policy to avoid spam.\n\n## Minimal day‑1 ops\n- Everything runs on one host via Docker Compose.\n- If internet quota for LLM is tight, you can temporarily switch to a mock provider for tests, then flip back to Gemini.\n\n## Implementation todos\n- setup-compose: Add a docker-compose stack (loki, promtail, grafana, qdrant) alongside existing services.\n- promtail-config: Configure scrape of your app logs; add labels service and env.\n- grafana-alerts: Create a logQL alert rule; set webhook → orchestrator /alerts with a secret.\n- orchestrator-webhook: Add /alerts POST; map payload → internal diagnose(service, context).\n- rag-qdrant: Add tiny client to upsert/query embeddings (store summaries, postmortems, issues).\n- prompt-update: Include RAG context block in the prompt if results found (top 3–5 snippets).\n- outputs: Ensure single Slack summary + GitHub issue; (optional) enable PR creation if LLM proposes a concrete diff.\n- controls: Add dedup/cooldown + webhook signature verification.\n&quot;,
-  &quot;name&quot;: &quot;Event&quot;,
-  &quot;todos&quot;: [
+  "plan": "# Event-driven SRE Agent PoC (Loki + Grafana + Qdrant)\n\n## Flow for a beginner (end-to-end)\n1. Your app writes logs\n   - App prints to stdout or a log file (e.g., JSON lines with fields like level, service, msg).\n2. Promtail ships the logs\n   - A small Promtail container tails your app’s logs, labels them (service, env), and pushes to Loki.\n3. Loki stores logs\n   - Loki ingests, indexes labels (cheap), and stores log chunks; it’s built for logQL queries.\n4. Grafana watches logs\n   - Grafana connects to Loki; you create a simple alert rule (logQL) like: count of level=\"error\" in 5m for service=\"salesforce\" &gt; 1.\n5. Alert → Webhook trigger\n   - When the rule fires, Grafana sends a webhook payload to the agent’s new /alerts endpoint with: service label, alert name, sample error lines, time window.\n6. Orchestrator starts the agent\n   - Orchestrator maps the alert to an internal “diagnose request” (service + context). No manual slash command.\n7. RAG enrichment (Qdrant, small and free)\n   - The agent embeds the alert text and searches Qdrant for similar past incidents/postmortems/snippets; top results are added to the prompt.\n8. LLM plans and acts\n   - Prompt server provides the repo context (org/repo/PROJECT_ROOT). LLM (Gemini) decides which tools to use: GitHub code lookup, create issue/PR, and Slack summary.\n9. Single outcome\n   - The agent posts one Slack summary, creates one GitHub issue (and optionally a PR) with repro steps and proposed fix.\n10. Learn for next time\n   - The final summary is embedded and stored in Qdrant so similar incidents get better over time (simple RAG loop).\n\n## What each Docker service does\n- loki: Log database (receives from Promtail, serves queries to Grafana).\n- promtail: Tails your app logs and pushes them to Loki with labels (service, env).\n- grafana: UI + alerting; evaluates logQL rules; sends webhook to the agent.\n- qdrant: Lightweight vector DB for incident/postmortem embeddings.\n- orchestrator: Your FastAPI MCP client; now with /alerts (webhook) and /diagnose.\n- prompt-server: Supplies the fixed diagnosis prompt and repo context.\n- llm-server: Talks to Gemini (or Anthropic) to plan tool usage.\n- github (MCP): Tools to read files, create issues/PRs.\n- slack (MCP): Tools to post a single summary.\n- (optional) firewall: Can be disabled if you don’t have HF model access.\n\n## Data and event contracts\n- Promtail labels on each log line\n  - service: e.g., \"salesforce\"\n  - env: e.g., \"dev\"\n  - level: e.g., \"error\"\n- Grafana alert (logQL example)\n  - expr: sum(count_over_time({service=\"salesforce\", level=\"error\"}[5m])) &gt; 1\n  - webhook body (subset): { alert: name, service: \"salesforce\", window: \"5m\", samples: [\"Error: KeyError: priority…\"], fired_at: ts }\n- Orchestrator /alerts mapping\n  - service → diagnose target, samples/window → context, alert name → title; posts internally to LLM.\n- RAG (Qdrant)\n  - upsert on completion: {embedding, summary, labels: [service, error_type, commit]}\n  - query on start: top-K similar to alert text + recent error lines\n\n## Security, reliability basics\n- Webhook secret validation (shared token); simple rate limit and 60–120s cooldown per service (dedup storm control).\n- Idempotency key: alert fingerprint (service + rule + window start) to avoid duplicate runs.\n- Logs: All decisions and tool calls recorded in orchestrator logs; single Slack message policy to avoid spam.\n\n## Minimal day‑1 ops\n- Everything runs on one host via Docker Compose.\n- If internet quota for LLM is tight, you can temporarily switch to a mock provider for tests, then flip back to Gemini.\n\n## Implementation todos\n- setup-compose: Add a docker-compose stack (loki, promtail, grafana, qdrant) alongside existing services.\n- promtail-config: Configure scrape of your app logs; add labels service and env.\n- grafana-alerts: Create a logQL alert rule; set webhook → orchestrator /alerts with a secret.\n- orchestrator-webhook: Add /alerts POST; map payload → internal diagnose(service, context).\n- rag-qdrant: Add tiny client to upsert/query embeddings (store summaries, postmortems, issues).\n- prompt-update: Include RAG context block in the prompt if results found (top 3–5 snippets).\n- outputs: Ensure single Slack summary + GitHub issue; (optional) enable PR creation if LLM proposes a concrete diff.\n- controls: Add dedup/cooldown + webhook signature verification.\n",
+  "name": "Event",
+  "todos": [
     {
-      &quot;content&quot;: &quot;Add compose services for loki, promtail, grafana, qdrant&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;setup-compose&quot;
+      "content": "Add compose services for loki, promtail, grafana, qdrant",
+      "status": "pending",
+      "id": "setup-compose"
     },
     {
-      &quot;content&quot;: &quot;Configure Promtail to tail app logs with labels service/env&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;promtail-config&quot;
+      "content": "Configure Promtail to tail app logs with labels service/env",
+      "status": "pending",
+      "id": "promtail-config"
     },
     {
-      &quot;content&quot;: &quot;Create Grafana logQL alert rule and webhook to /alerts&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;grafana-alerts&quot;
+      "content": "Create Grafana logQL alert rule and webhook to /alerts",
+      "status": "pending",
+      "id": "grafana-alerts"
     },
     {
-      &quot;content&quot;: &quot;Add /alerts endpoint; map to diagnose(service, context)&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;orchestrator-webhook&quot;
+      "content": "Add /alerts endpoint; map to diagnose(service, context)",
+      "status": "pending",
+      "id": "orchestrator-webhook"
     },
     {
-      &quot;content&quot;: &quot;Wire Qdrant client for query/upsert of incident embeddings&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;rag-qdrant&quot;
+      "content": "Wire Qdrant client for query/upsert of incident embeddings",
+      "status": "pending",
+      "id": "rag-qdrant"
     },
     {
-      &quot;content&quot;: &quot;Inject RAG snippets into prompt when available&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;prompt-update&quot;
+      "content": "Inject RAG snippets into prompt when available",
+      "status": "pending",
+      "id": "prompt-update"
     },
     {
-      &quot;content&quot;: &quot;Keep single Slack summary; create GitHub issue; optional PR&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;outputs&quot;
+      "content": "Keep single Slack summary; create GitHub issue; optional PR",
+      "status": "pending",
+      "id": "outputs"
     },
     {
-      &quot;content&quot;: &quot;Add webhook signature + dedup/cooldown window&quot;,
-      &quot;status&quot;: &quot;pending&quot;,
-      &quot;id&quot;: &quot;controls&quot;
+      "content": "Add webhook signature + dedup/cooldown window",
+      "status": "pending",
+      "id": "controls"
     }
   ],
-  &quot;overview&quot;: &quot;Turn your SRE agent into a real-time, event-driven system using free/local Docker services: Promtail+Loki for logs, Grafana for alert → webhook, Qdrant for lightweight RAG, and your existing MCP-based agent.&quot;
+  "overview": "Turn your SRE agent into a real-time, event-driven system using free/local Docker services: Promtail+Loki for logs, Grafana for alert → webhook, Qdrant for lightweight RAG, and your existing MCP-based agent."
 }
 ```
 Additional data:
 
 ```json
 {
-  &quot;status&quot;: &quot;accepted&quot;,
-  &quot;reviewData&quot;: {
-    &quot;status&quot;: &quot;Done&quot;,
-    &quot;selectedOption&quot;: &quot;approve&quot;,
-    &quot;isShowingInput&quot;: false
+  "status": "accepted",
+  "reviewData": {
+    "status": "Done",
+    "selectedOption": "approve",
+    "isShowingInput": false
   }
 }
 ```
@@ -6888,57 +6888,57 @@ Result:
 
 ```json
 {
-  &quot;accepted&quot;: {
-    &quot;finalTodos&quot;: [
+  "accepted": {
+    "finalTodos": [
       {
-        &quot;content&quot;: &quot;Switch LLM to Gemini and restart llm-server&quot;,
-        &quot;status&quot;: &quot;completed&quot;,
-        &quot;id&quot;: &quot;switch_gemini&quot;
+        "content": "Switch LLM to Gemini and restart llm-server",
+        "status": "completed",
+        "id": "switch_gemini"
       },
       {
-        &quot;content&quot;: &quot;Trigger diagnosis again and check logs&quot;,
-        &quot;status&quot;: &quot;in_progress&quot;,
-        &quot;id&quot;: &quot;retry_diag&quot;
+        "content": "Trigger diagnosis again and check logs",
+        "status": "in_progress",
+        "id": "retry_diag"
       },
       {
-        &quot;content&quot;: &quot;Add compose services for loki, promtail, grafana, qdrant&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;setup-compose&quot;
+        "content": "Add compose services for loki, promtail, grafana, qdrant",
+        "status": "pending",
+        "id": "setup-compose"
       },
       {
-        &quot;content&quot;: &quot;Configure Promtail to tail app logs with labels service/env&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;promtail-config&quot;
+        "content": "Configure Promtail to tail app logs with labels service/env",
+        "status": "pending",
+        "id": "promtail-config"
       },
       {
-        &quot;content&quot;: &quot;Create Grafana logQL alert rule and webhook to /alerts&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;grafana-alerts&quot;
+        "content": "Create Grafana logQL alert rule and webhook to /alerts",
+        "status": "pending",
+        "id": "grafana-alerts"
       },
       {
-        &quot;content&quot;: &quot;Add /alerts endpoint; map to diagnose(service, context)&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;orchestrator-webhook&quot;
+        "content": "Add /alerts endpoint; map to diagnose(service, context)",
+        "status": "pending",
+        "id": "orchestrator-webhook"
       },
       {
-        &quot;content&quot;: &quot;Wire Qdrant client for query/upsert of incident embeddings&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;rag-qdrant&quot;
+        "content": "Wire Qdrant client for query/upsert of incident embeddings",
+        "status": "pending",
+        "id": "rag-qdrant"
       },
       {
-        &quot;content&quot;: &quot;Inject RAG snippets into prompt when available&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;prompt-update&quot;
+        "content": "Inject RAG snippets into prompt when available",
+        "status": "pending",
+        "id": "prompt-update"
       },
       {
-        &quot;content&quot;: &quot;Keep single Slack summary; create GitHub issue; optional PR&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;outputs&quot;
+        "content": "Keep single Slack summary; create GitHub issue; optional PR",
+        "status": "pending",
+        "id": "outputs"
       },
       {
-        &quot;content&quot;: &quot;Add webhook signature + dedup/cooldown window&quot;,
-        &quot;status&quot;: &quot;pending&quot;,
-        &quot;id&quot;: &quot;controls&quot;
+        "content": "Add webhook signature + dedup/cooldown window",
+        "status": "pending",
+        "id": "controls"
       }
     ]
   }
@@ -7088,16 +7088,16 @@ I'm focusing on creating a new `/alerts` endpoint. I'll set it up to verify the 
 +services:
 +  loki:
 +    image: grafana/loki:2.9.8
-+    command: [&quot;-config.file=/etc/loki/config.yaml&quot;]
++    command: ["-config.file=/etc/loki/config.yaml"]
 +    ports:
-+      - &quot;3100:3100&quot;
++      - "3100:3100"
 +    volumes:
 +      - ./observability/loki/config.yaml:/etc/loki/config.yaml:ro
 +      - loki-data:/loki
 +
 +  promtail:
 +    image: grafana/promtail:2.9.8
-+    command: [&quot;-config.file=/etc/promtail/promtail.yaml&quot;]
++    command: ["-config.file=/etc/promtail/promtail.yaml"]
 +    volumes:
 +      - ./observability/promtail/promtail.yaml:/etc/promtail/promtail.yaml:ro
 +      - ./logs/app:/var/log/app:ro
@@ -7107,7 +7107,7 @@ I'm focusing on creating a new `/alerts` endpoint. I'll set it up to verify the 
 +  grafana:
 +    image: grafana/grafana:11.2.0
 +    ports:
-+      - &quot;3000:3000&quot;
++      - "3000:3000"
 +    environment:
 +      - GF_SECURITY_ADMIN_USER=admin
 +      - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -7120,7 +7120,7 @@ I'm focusing on creating a new `/alerts` endpoint. I'll set it up to verify the 
 +  qdrant:
 +    image: qdrant/qdrant:latest
 +    ports:
-+      - &quot;6333:6333&quot;
++      - "6333:6333"
 +    volumes:
 +      - qdrant-storage:/qdrant/storage
 +
@@ -7309,7 +7309,7 @@ I'm focusing on creating a new `/alerts` endpoint. I'll set it up to verify the 
 +                type: loki
 +                uid: -100
 +              editorMode: builder
-+              expr: sum(count_over_time({service=&quot;salesforce&quot;, level=&quot;error&quot;}[5m]))
++              expr: sum(count_over_time({service="salesforce", level="error"}[5m]))
 +              queryType: range
 +              refId: A
 +          - refId: B
@@ -7325,7 +7325,7 @@ I'm focusing on creating a new `/alerts` endpoint. I'll set it up to verify the 
 +              type: math
 +              refId: C
 +        annotations:
-+          summary: &quot;Errors detected for service=salesforce in last 5m&quot;
++          summary: "Errors detected for service=salesforce in last 5m"
 +        labels:
 +          service: salesforce
 *** End Patch
@@ -7371,18 +7371,18 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 *** Update File: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/client/pyproject.toml
 @@
  dependencies = [
-     &quot;fastapi&gt;=0.115.12&quot;,
-     &quot;mcp[cli]&gt;=1.6.0&quot;,
-     &quot;python-dotenv&gt;=1.1.0&quot;,
-     &quot;python-multipart&gt;=0.0.20&quot;,
-     &quot;requests&gt;=2.32.3&quot;,
-     &quot;types-requests&gt;=2.32.0.20250328&quot;,
-     &quot;uvicorn&gt;=0.34.2&quot;,
-     &quot;llamafirewall&gt;=1.0.2&quot;,
-     &quot;huggingface_hub&quot;,
-     &quot;shared&quot;,
-+    &quot;qdrant-client&gt;=1.11.1&quot;,
-+    &quot;google-genai&gt;=1.19.0&quot;,
+     "fastapi&gt;=0.115.12",
+     "mcp[cli]&gt;=1.6.0",
+     "python-dotenv&gt;=1.1.0",
+     "python-multipart&gt;=0.0.20",
+     "requests&gt;=2.32.3",
+     "types-requests&gt;=2.32.0.20250328",
+     "uvicorn&gt;=0.34.2",
+     "llamafirewall&gt;=1.0.2",
+     "huggingface_hub",
+     "shared",
++    "qdrant-client&gt;=1.11.1",
++    "google-genai&gt;=1.19.0",
  ]
 *** End Patch
 ```
@@ -7402,11 +7402,11 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 *** Update File: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/client/utils/schemas.py
 @@
  class AuthConfig:
-     &quot;&quot;&quot;A config class containing authorisation environment variables.&quot;&quot;&quot;
+     """A config class containing authorisation environment variables."""
  
-     slack_signing_secret: str = os.getenv(&quot;SLACK_SIGNING_SECRET&quot;, &quot;&quot;)
-     dev_bearer_token: str = os.getenv(&quot;DEV_BEARER_TOKEN&quot;, &quot;&quot;)
-+    alert_webhook_secret: str = os.getenv(&quot;ALERT_WEBHOOK_SECRET&quot;, &quot;&quot;)
+     slack_signing_secret: str = os.getenv("SLACK_SIGNING_SECRET", "")
+     dev_bearer_token: str = os.getenv("DEV_BEARER_TOKEN", "")
++    alert_webhook_secret: str = os.getenv("ALERT_WEBHOOK_SECRET", "")
 *** End Patch
 ```
 
@@ -7423,7 +7423,7 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 ```diff
 *** Begin Patch
 *** Add File: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/client/utils/rag.py
-+&quot;&quot;&quot;Simple RAG client using Qdrant and Gemini embeddings.&quot;&quot;&quot;
++"""Simple RAG client using Qdrant and Gemini embeddings."""
 +from __future__ import annotations
 +
 +import os
@@ -7433,12 +7433,12 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 +from qdrant_client import QdrantClient
 +from qdrant_client.http import models as qmodels
 +
-+DEFAULT_COLLECTION = os.getenv(&quot;QDRANT_COLLECTION&quot;, &quot;incidents&quot;)
-+QDRANT_URL = os.getenv(&quot;QDRANT_URL&quot;, &quot;http://qdrant:6333&quot;)
++DEFAULT_COLLECTION = os.getenv("QDRANT_COLLECTION", "incidents")
++QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 +
 +
 +def _embed(texts: Iterable[str]) -&gt; list[list[float]]:
-+    api_key = os.getenv(&quot;GEMINI_API_KEY&quot;, &quot;&quot;)
++    api_key = os.getenv("GEMINI_API_KEY", "")
 +    if not api_key:
 +        return [[0.0] * 3 for _ in texts]  # trivial fallback to stable shape
 +
@@ -7446,7 +7446,7 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 +    out: list[list[float]] = []
 +    for t in texts:
 +        resp = client.models.embed_content(
-+            model=&quot;text-embedding-004&quot;,  # free-friendly embedding model
++            model="text-embedding-004",  # free-friendly embedding model
 +            content=t[:3000],
 +        )
 +        out.append(resp.embeddings[0].values)
@@ -7483,7 +7483,7 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 +        with_payload=True,
 +        limit=top_k,
 +    )
-+    return [str(p.payload.get(&quot;summary&quot;, &quot;&quot;)) for p in res if p.payload]
++    return [str(p.payload.get("summary", "")) for p in res if p.payload]
 +
 +
 +def upsert_summary(doc_id: str, text: str, labels: dict[str, str] | None = None) -&gt; None:
@@ -7499,7 +7499,7 @@ I need to let the user know that we've added `compose.observability.yaml` and th
 +            qmodels.PointStruct(
 +                id=doc_id,
 +                vector=vectors[0],
-+                payload={&quot;summary&quot;: text, **(labels or {})},
++                payload={"summary": text, **(labels or {})},
 +            )
 +        ],
 +    )
@@ -7573,26 +7573,26 @@ The model made no changes to the file.
 +        self, service: str, slack_channel_id: str, extra_context: str | None = None
 +    ) -&gt; dict[str, Any]:
 @@
--        self.messages = [{&quot;role&quot;: query.role, &quot;content&quot;: query.content}]
-+        self.messages = [{&quot;role&quot;: query.role, &quot;content&quot;: query.content}]
+-        self.messages = [{"role": query.role, "content": query.content}]
++        self.messages = [{"role": query.role, "content": query.content}]
 +
 +        # Inject RAG context and alert context if available
 +        if extra_context:
 +            try:
 +                rag_snippets = [s for s in query_similar(extra_context) if s]
 +            except Exception as e:  # noqa: BLE001
-+                logger.warning(f&quot;RAG query failed: {e}&quot;)
++                logger.warning(f"RAG query failed: {e}")
 +                rag_snippets = []
 +
 +            if rag_snippets:
-+                rag_text = &quot;\n\n&quot;.join([f&quot;- {s}&quot; for s in rag_snippets[:5]])
++                rag_text = "\n\n".join([f"- {s}" for s in rag_snippets[:5]])
 +                self.messages.append(
 +                    {
-+                        &quot;role&quot;: &quot;user&quot;,
-+                        &quot;content&quot;: [
++                        "role": "user",
++                        "content": [
 +                            {
-+                                &quot;type&quot;: &quot;text&quot;,
-+                                &quot;text&quot;: f&quot;Relevant prior incidents (most similar first):\n{rag_text}&quot;,
++                                "type": "text",
++                                "text": f"Relevant prior incidents (most similar first):\n{rag_text}",
 +                            }
 +                        ],
 +                    }
@@ -7600,11 +7600,11 @@ The model made no changes to the file.
 +
 +            self.messages.append(
 +                {
-+                    &quot;role&quot;: &quot;user&quot;,
-+                    &quot;content&quot;: [
++                    "role": "user",
++                    "content": [
 +                        {
-+                            &quot;type&quot;: &quot;text&quot;,
-+                            &quot;text&quot;: f&quot;Alert context (logs/summary):\n{extra_context[:4000]}&quot;,
++                            "type": "text",
++                            "text": f"Alert context (logs/summary):\n{extra_context[:4000]}",
 +                        }
 +                    ],
 +                }
@@ -7631,25 +7631,25 @@ The model made no changes to the file.
 @@
 -            async def _run_diagnosis(mcp_client: MCPClient) -&gt; dict[str, Any]:
 +            async def _run_diagnosis(mcp_client: MCPClient) -&gt; dict[str, Any]:
-                 &quot;&quot;&quot;Inner function to run the actual diagnosis query.&quot;&quot;&quot;
+                 """Inner function to run the actual diagnosis query."""
                  result = await mcp_client.process_query(
                      service=service,
                      slack_channel_id=_get_client_config().slack_channel_id,
 +                    extra_context=alert_context,
                  )
 @@
--                logger.info(&quot;Query processed successfully&quot;)
--                logger.info(f&quot;Diagnosis result for {service}: {result[&#39;response&#39;]}&quot;)
-+                logger.info(&quot;Query processed successfully&quot;)
-+                logger.info(f&quot;Diagnosis result for {service}: {result[&#39;response&#39;]}&quot;)
+-                logger.info("Query processed successfully")
+-                logger.info(f"Diagnosis result for {service}: {result['response']}")
++                logger.info("Query processed successfully")
++                logger.info(f"Diagnosis result for {service}: {result['response']}")
 +                try:
 +                    upsert_summary(
-+                        doc_id=f&quot;{service}-{int(start_time)}&quot;,
-+                        text=result[&quot;response&quot;][:4000],
-+                        labels={&quot;service&quot;: service},
++                        doc_id=f"{service}-{int(start_time)}",
++                        text=result["response"][:4000],
++                        labels={"service": service},
 +                    )
 +                except Exception as e:  # noqa: BLE001
-+                    logger.warning(f&quot;Failed to upsert RAG summary: {e}&quot;)
++                    logger.warning(f"Failed to upsert RAG summary: {e}")
                  return result
 *** End Patch
 ```
@@ -7668,7 +7668,7 @@ The model made no changes to the file.
 *** Begin Patch
 *** Update File: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/client/client.py
 @@
- @app.post(&quot;/diagnose&quot;)
+ @app.post("/diagnose")
  async def diagnose(
      request: Request,
      background_tasks: BackgroundTasks,
@@ -7680,45 +7680,45 @@ The model made no changes to the file.
      )
 +
 +
-+@app.post(&quot;/alerts&quot;)
++@app.post("/alerts")
 +async def alerts(request: Request, background_tasks: BackgroundTasks) -&gt; JSONResponse:
-+    &quot;&quot;&quot;Webhook endpoint for Grafana (or any alert source).
++    """Webhook endpoint for Grafana (or any alert source).
 +
 +    Expects header &#96;X-Alert-Secret&#96; to match env ALERT_WEBHOOK_SECRET.
 +    Attempts to derive &#96;service&#96; from labels; defaults to first configured service.
 +    Passes a compacted JSON payload as extra context to the diagnosis run.
-+    &quot;&quot;&quot;
-+    secret = os.getenv(&quot;ALERT_WEBHOOK_SECRET&quot;, &quot;&quot;)
-+    provided = request.headers.get(&quot;X-Alert-Secret&quot;, &quot;&quot;)
++    """
++    secret = os.getenv("ALERT_WEBHOOK_SECRET", "")
++    provided = request.headers.get("X-Alert-Secret", "")
 +    if secret and provided != secret:
-+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail=&quot;Invalid secret&quot;)
++        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="Invalid secret")
 +
 +    payload = await request.json()
 +
 +    # Best-effort service detection
 +    service = (
-+        payload.get(&quot;labels&quot;, {}).get(&quot;service&quot;)
-+        or payload.get(&quot;service&quot;)
-+        or (_get_client_config().services[0] if _get_client_config().services else &quot;salesforce&quot;)
++        payload.get("labels", {}).get("service")
++        or payload.get("service")
++        or (_get_client_config().services[0] if _get_client_config().services else "salesforce")
 +    )
 +
 +    # Compact context string
-+    title = payload.get(&quot;title&quot;) or payload.get(&quot;alertname&quot;) or &quot;Alert&quot;
-+    samples = payload.get(&quot;samples&quot;) or payload.get(&quot;values&quot;) or []
-+    summary = payload.get(&quot;annotations&quot;, {}).get(&quot;summary&quot;) or &quot;&quot;
-+    context_lines = [f&quot;Title: {title}&quot;, f&quot;Summary: {summary}&quot;]
++    title = payload.get("title") or payload.get("alertname") or "Alert"
++    samples = payload.get("samples") or payload.get("values") or []
++    summary = payload.get("annotations", {}).get("summary") or ""
++    context_lines = [f"Title: {title}", f"Summary: {summary}"]
 +    if isinstance(samples, list) and samples:
-+        context_lines.append(&quot;Samples:&quot;)
++        context_lines.append("Samples:")
 +        for s in samples[:5]:
 +            context_lines.append(str(s))
-+    alert_context = &quot;\n&quot;.join(context_lines)
++    alert_context = "\n".join(context_lines)
 +
-+    logger.info(f&quot;Received alert for service={service}. Triggering diagnosis.&quot;)
++    logger.info(f"Received alert for service={service}. Triggering diagnosis.")
 +    background_tasks.add_task(run_diagnosis_and_post, service, alert_context)
 +
 +    return JSONResponse(
 +        status_code=HTTPStatus.OK,
-+        content={&quot;status&quot;: &quot;accepted&quot;, &quot;service&quot;: service},
++        content={"status": "accepted", "service": service},
 +    )
 *** End Patch
 ```
@@ -7760,7 +7760,7 @@ Lint results
 *** Begin Patch
 *** Update File: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/client/client.py
 @@
- END_TURN = &quot;end_turn&quot;
+ END_TURN = "end_turn"
 +LAST_RUNS: dict[str, float] = {}
 *** End Patch
 ```
@@ -7779,19 +7779,19 @@ Lint results
 *** Begin Patch
 *** Update File: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/client/client.py
 @@
-     logger.info(f&quot;Received alert for service={service}. Triggering diagnosis.&quot;)
+     logger.info(f"Received alert for service={service}. Triggering diagnosis.")
 -    background_tasks.add_task(run_diagnosis_and_post, service, alert_context)
 +    # Simple cooldown to avoid incident storms
-+    cooldown = int(os.getenv(&quot;ALERT_COOLDOWN_SECONDS&quot;, &quot;120&quot;) or &quot;120&quot;)
++    cooldown = int(os.getenv("ALERT_COOLDOWN_SECONDS", "120") or "120")
 +    now = time.time()
 +    last = LAST_RUNS.get(service, 0)
 +    if now - last &lt; cooldown:
 +        logger.info(
-+            f&quot;Cooldown active for service={service}. Skipping (last={last:.0f}, now={now:.0f}).&quot;
++            f"Cooldown active for service={service}. Skipping (last={last:.0f}, now={now:.0f})."
 +        )
 +        return JSONResponse(
 +            status_code=HTTPStatus.ACCEPTED,
-+            content={&quot;status&quot;: &quot;cooldown&quot;, &quot;service&quot;: service},
++            content={"status": "cooldown", "service": service},
 +        )
 +
 +    LAST_RUNS[service] = now
@@ -7971,7 +7971,7 @@ _**Agent (model claude-4.5-opus-high-thinking, mode Agent)**_
 
 <tool-use data-tool-type="generic" data-tool-name="list_dir">
 <details>
-            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+            <summary>Tool use: **list_dir** • Listed directory undefined • **0** results</summary>
         
 No results found
 </details>
@@ -7997,7 +7997,7 @@ No results found
 
 <tool-use data-tool-type="generic" data-tool-name="list_dir">
 <details>
-            <summary>Tool use: **list_directory** • Listed directory undefined • **0** results</summary>
+            <summary>Tool use: **list_dir** • Listed directory undefined • **0** results</summary>
         
 No results found
 </details>
@@ -8014,7 +8014,7 @@ No results found
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml down -v 2>/dev/null; docker compose -f compose.local.yaml up --build -d</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml down -v 2>/dev/null; docker compose -f compose.local.yaml up --build -d</summary>
 
 ```bash
 cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml down -v 2>/dev/null; docker compose -f compose.local.yaml up --build -d
@@ -8023,7 +8023,7 @@ cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [prompt-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 676B done
@@ -8329,8 +8329,8 @@ Compose can now delegate builds to bake for better performance.
  slack  Built
  Network sre-agent_default  Creating
  Network sre-agent_default  Created
- Volume &quot;sre-agent_qdrant_storage&quot;  Creating
- Volume &quot;sre-agent_qdrant_storage&quot;  Created
+ Volume "sre-agent_qdrant_storage"  Creating
+ Volume "sre-agent_qdrant_storage"  Created
  Container sre-agent-llama-firewall-1  Creating
  Container sre-agent-github-1  Creating
  Container sre-agent-loki-1  Creating
@@ -8387,7 +8387,7 @@ Compose can now delegate builds to bake for better performance.
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml ps</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml ps</summary>
 
 ```bash
 cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml ps
@@ -8395,14 +8395,14 @@ cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose
 
 ```
 NAME                        IMAGE                     COMMAND                  SERVICE         CREATED          STATUS                    PORTS
-sre-agent-github-1          sre-agent-github          &quot;node dist/index.js&quot;     github          36 seconds ago   Up 35 seconds (healthy)   
-sre-agent-grafana-1         grafana/grafana:10.4.6    &quot;/run.sh&quot;                grafana         36 seconds ago   Up 35 seconds             0.0.0.0:3000-&gt;3000/tcp
-sre-agent-llm-server-1      sre-agent-llm-server      &quot;uv run uvicorn main…&quot;   llm-server      36 seconds ago   Up 35 seconds (healthy)   8000/tcp
-sre-agent-orchestrator-1    sre-agent-orchestrator    &quot;uv run uvicorn clie…&quot;   orchestrator    36 seconds ago   Up 4 seconds              0.0.0.0:8003-&gt;80/tcp
-sre-agent-prompt-server-1   sre-agent-prompt-server   &quot;uvicorn server:app …&quot;   prompt-server   36 seconds ago   Up 35 seconds (healthy)   
-sre-agent-promtail-1        grafana/promtail:2.9.8    &quot;/usr/bin/promtail -…&quot;   promtail        36 seconds ago   Up 35 seconds             
-sre-agent-qdrant-1          qdrant/qdrant:latest      &quot;./entrypoint.sh&quot;        qdrant          36 seconds ago   Up 35 seconds             0.0.0.0:6333-&gt;6333/tcp, 6334/tcp
-sre-agent-slack-1           sre-agent-slack           &quot;node dist/index.js&quot;     slack           36 seconds ago   Up 35 seconds (healthy)   
+sre-agent-github-1          sre-agent-github          "node dist/index.js"     github          36 seconds ago   Up 35 seconds (healthy)   
+sre-agent-grafana-1         grafana/grafana:10.4.6    "/run.sh"                grafana         36 seconds ago   Up 35 seconds             0.0.0.0:3000-&gt;3000/tcp
+sre-agent-llm-server-1      sre-agent-llm-server      "uv run uvicorn main…"   llm-server      36 seconds ago   Up 35 seconds (healthy)   8000/tcp
+sre-agent-orchestrator-1    sre-agent-orchestrator    "uv run uvicorn clie…"   orchestrator    36 seconds ago   Up 4 seconds              0.0.0.0:8003-&gt;80/tcp
+sre-agent-prompt-server-1   sre-agent-prompt-server   "uvicorn server:app …"   prompt-server   36 seconds ago   Up 35 seconds (healthy)   
+sre-agent-promtail-1        grafana/promtail:2.9.8    "/usr/bin/promtail -…"   promtail        36 seconds ago   Up 35 seconds             
+sre-agent-qdrant-1          qdrant/qdrant:latest      "./entrypoint.sh"        qdrant          36 seconds ago   Up 35 seconds             0.0.0.0:6333-&gt;6333/tcp, 6334/tcp
+sre-agent-slack-1           sre-agent-slack           "node dist/index.js"     slack           36 seconds ago   Up 35 seconds (healthy)   
 
 ```
 </details>
@@ -8415,7 +8415,7 @@ All containers are up and healthy. Let me verify the orchestrator is ready:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: curl -s http://localhost:8003/health | head -c 500</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: curl -s http://localhost:8003/health | head -c 500</summary>
 
 ```bash
 curl -s http://localhost:8003/health | head -c 500
@@ -8426,7 +8426,7 @@ curl -s http://localhost:8003/health | head -c 500
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 50 orchestrator</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 50 orchestrator</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 50 orchestrator
@@ -8448,14 +8448,14 @@ INFO:     Uvicorn running on http://0.0.0.0:80 (Press CTRL+C to quit)
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: curl -s http://localhost:8003/health 2>&1 || true</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: curl -s http://localhost:8003/health 2>&1 || true</summary>
 
 ```bash
 curl -s http://localhost:8003/health 2>&1 || true
 ```
 
 ```
-{&quot;status&quot;:&quot;OK&quot;,&quot;detail&quot;:&quot;All required MCP server connections are healthy.&quot;,&quot;checked_servers&quot;:[&quot;GITHUB&quot;,&quot;PROMPT&quot;,&quot;SLACK&quot;]}
+{"status":"OK","detail":"All required MCP server connections are healthy.","checked_servers":["GITHUB","PROMPT","SLACK"]}
 ```
 </details>
 </tool-use>
@@ -8797,7 +8797,7 @@ Let me fix the bind mount so it actually works:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/observability/promtail/config.yaml</summary>
+<details><summary>Tool use: **search_replace** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/observability/promtail/config.yaml</summary>
 
 **Chunk 1**
 Lines added: 12, lines removed: 15
@@ -8851,7 +8851,7 @@ Lines added: 12, lines removed: 15
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml</summary>
+<details><summary>Tool use: **search_replace** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 1
@@ -8888,7 +8888,7 @@ Now let me also check the Grafana alert is configured to call the orchestrator c
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/observability/grafana/provisioning/alerting/contactpoints.yaml</summary>
+<details><summary>Tool use: **search_replace** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/observability/grafana/provisioning/alerting/contactpoints.yaml</summary>
 
 **Chunk 1**
 Lines added: 2, lines removed: 10
@@ -8909,7 +8909,7 @@ Lines added: 2, lines removed: 10
 - notificationPolicies:
 -   - orgId: 1
 -     receiver: sre-agent-webhook
-+           authorization_header: &quot;X-Alert-Secret: demo-secret-123&quot;
++           authorization_header: "X-Alert-Secret: demo-secret-123"
   
   
 ```
@@ -8921,7 +8921,7 @@ Lines added: 2, lines removed: 10
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && mkdir -p logs/app && docker compose -f compose.local.yaml up -d promtail grafana</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && mkdir -p logs/app && docker compose -f compose.local.yaml up -d promtail grafana</summary>
 
 ```bash
 cd /Users/chetansingh/Documents/Hackathon/sre-agent && mkdir -p logs/app && docker compose -f compose.local.yaml up -d promtail grafana
@@ -9004,7 +9004,7 @@ Let me check your Slack setup:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 20 slack</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 20 slack</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 20 slack
@@ -9012,13 +9012,13 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 
 ```
 2025-11-28 02:14:44 [[32minfo[39m]: Starting Slack MCP Server... {
-  &quot;service&quot;: &quot;slack-server&quot;
+  "service": "slack-server"
 }
 2025-11-28 02:14:44 [[32minfo[39m]: Connecting server through SSE transport {
-  &quot;service&quot;: &quot;slack-server&quot;
+  "service": "slack-server"
 }
 2025-11-28 02:14:44 [[32minfo[39m]: Server listening on port 3001 {
-  &quot;service&quot;: &quot;slack-server&quot;
+  "service": "slack-server"
 }
 
 ```
@@ -9032,7 +9032,7 @@ Slack server is running. Now let's verify your tokens are set and test the conne
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec slack printenv | grep -E "SLACK_BOT_TOKEN|SLACK_TEAM_ID" | sed 's/=.*/=<set>/'</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec slack printenv | grep -E "SLACK_BOT_TOKEN|SLACK_TEAM_ID" | sed 's/=.*/=<set>/'</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec slack printenv | grep -E "SLACK_BOT_TOKEN|SLACK_TEAM_ID" | sed 's/=.*/=<set>/'
@@ -9053,7 +9053,7 @@ Both tokens are set. Now let's test if Slack can actually post a message:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec orchestrator printenv SLACK_CHANNEL_ID</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec orchestrator printenv SLACK_CHANNEL_ID</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec orchestrator printenv SLACK_CHANNEL_ID
@@ -9073,7 +9073,7 @@ Good, channel ID is set. Let me do a quick test by triggering the agent and watc
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{"title":"Test Alert","service":"salesforce","annotations":{"summary":"Testing Slack connection"}}'</summary>
@@ -9086,7 +9086,7 @@ curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;accepted&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"accepted","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -9094,7 +9094,7 @@ curl -s -X POST http://localhost:8003/alerts \
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 10 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 50 orchestrator 2>&1 | tail -40</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 10 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 50 orchestrator 2>&1 | tail -40</summary>
 
 ```bash
 sleep 10 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 50 orchestrator 2>&1 | tail -40
@@ -9103,30 +9103,30 @@ sleep 10 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/c
 ```
 2025-11-28 02:15:32 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:15:32 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:15:32 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:15:32 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:15:32 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:15:32 [[92mINFO[0m]: Initialising session for http://prompt-server:3001/sse
 2025-11-28 02:15:32 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
-2025-11-28 02:15:32 [[92mINFO[0m]: Health check completed successfully. All connections healthy: [&#39;GITHUB&#39;, &#39;PROMPT&#39;, &#39;SLACK&#39;]
-INFO:     192.168.65.1:47042 - &quot;GET /health HTTP/1.1&quot; 200 OK
+2025-11-28 02:15:32 [[92mINFO[0m]: Health check completed successfully. All connections healthy: ['GITHUB', 'PROMPT', 'SLACK']
+INFO:     192.168.65.1:47042 - "GET /health HTTP/1.1" 200 OK
 2025-11-28 02:37:24 [[92mINFO[0m]: Received alert for service=salesforce. Triggering diagnosis.
-INFO:     192.168.65.1:49387 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:49387 - "POST /alerts HTTP/1.1" 200 OK
 2025-11-28 02:37:24 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-28 02:37:24 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-28 02:37:24 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:37:24 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:37:24 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-28 02:37:24 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-28 02:37:24 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-28 02:37:24 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-28 02:37:24 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-28 02:37:24 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:37:25 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:37:25 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:37:25 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:37:25 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:37:25 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:37:25 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:37:25 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:37:25 [[92mINFO[0m]: Creating MCP client session
@@ -9134,8 +9134,8 @@ INFO:     192.168.65.1:49387 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
 2025-11-28 02:37:25 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:37:25 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-28 02:37:25 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-28 02:37:25 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
-2025-11-28 02:37:25 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument &#39;content&#39;
+2025-11-28 02:37:25 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
+2025-11-28 02:37:25 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument 'content'
 2025-11-28 02:37:25 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:37:31 [[92mINFO[0m]: LLM request took 6.47 seconds
 2025-11-28 02:37:31 [[92mINFO[0m]: Sending request to the LLM
@@ -9153,7 +9153,7 @@ It's working! The agent is running. Let me wait a bit more and check if it posts
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 30 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 80 orchestrator 2>&1 | grep -E "slack_post_message|Slack|Tool.*slack|error|Error" | tail -20</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 30 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 80 orchestrator 2>&1 | grep -E "slack_post_message|Slack|Tool.*slack|error|Error" | tail -20</summary>
 
 ```bash
 sleep 30 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 80 orchestrator 2>&1 | grep -E "slack_post_message|Slack|Tool.*slack|error|Error" | tail -20
@@ -9179,7 +9179,7 @@ LLM server error. Let me check what's happening:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 30 llm-server</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 30 llm-server</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 30 llm-server
@@ -9187,35 +9187,35 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 
 ```
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/fastapi/routing.py&quot;, line 214, in run_endpoint_function
+  File "/app/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 214, in run_endpoint_function
     return await run_in_threadpool(dependant.call, **values)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py&quot;, line 37, in run_in_threadpool
+  File "/app/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
     return await anyio.to_thread.run_sync(func)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py&quot;, line 56, in run_sync
+  File "/app/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 56, in run_sync
     return await get_async_backend().run_sync_in_worker_thread(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 2470, in run_sync_in_worker_thread
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
     return await future
            ^^^^^^^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 967, in run
+  File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 967, in run
     result = context.run(func, *args)
              ^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/main.py&quot;, line 64, in generate
-    return cast(Message, STATE[&quot;client&quot;].generate(payload))
+  File "/app/main.py", line 64, in generate
+    return cast(Message, STATE["client"].generate(payload))
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File &quot;/app/utils/clients.py&quot;, line 217, in generate
+  File "/app/utils/clients.py", line 217, in generate
     usage=Usage(
           ^^^^^^
-  File &quot;/app/.venv/lib/python3.12/site-packages/pydantic/main.py&quot;, line 253, in __init__
+  File "/app/.venv/lib/python3.12/site-packages/pydantic/main.py", line 253, in __init__
     validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 pydantic_core._pydantic_core.ValidationError: 1 validation error for Usage
 output_tokens
   Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]
     For further information visit https://errors.pydantic.dev/2.11/v/int_type
-INFO:     127.0.0.1:57128 - &quot;GET /health HTTP/1.1&quot; 200 OK
+INFO:     127.0.0.1:57128 - "GET /health HTTP/1.1" 200 OK
 
 ```
 </details>
@@ -9237,14 +9237,14 @@ The Gemini response is returning `None` for output_tokens. Let me fix the LLM cl
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/llm/utils/clients.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/llm/utils/clients.py</summary>
 
 **Chunk 1**
 Lines added: 3, lines removed: 3
 
 ```diff
 @@ -216,11 +216,11 @@
-              else &quot;end_turn&quot;,
+              else "end_turn",
               usage=Usage(
 -                 input_tokens=response.usage_metadata.prompt_token_count,
 -                 output_tokens=response.usage_metadata.candidates_token_count,
@@ -9267,7 +9267,7 @@ Lines added: 3, lines removed: 3
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml up -d --build llm-server</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml up -d --build llm-server</summary>
 
 ```bash
 cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml up -d --build llm-server
@@ -9276,7 +9276,7 @@ cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [llm-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 563B done
@@ -9407,7 +9407,7 @@ Now let's test again:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 5 && curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 5 && curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{"title":"Test Slack","service":"salesforce","annotations":{"summary":"Testing if Slack message gets posted"}}'</summary>
@@ -9420,7 +9420,7 @@ sleep 5 && curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;accepted&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"accepted","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -9428,14 +9428,14 @@ sleep 5 && curl -s -X POST http://localhost:8003/alerts \
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 100 orchestrator 2>&1 | grep -E "slack_post_message|Calling tool|Tool.*took|processed|Diagnosis result" | tail -20</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 100 orchestrator 2>&1 | grep -E "slack_post_message|Calling tool|Tool.*took|processed|Diagnosis result" | tail -20</summary>
 
 ```bash
 sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 100 orchestrator 2>&1 | grep -E "slack_post_message|Calling tool|Tool.*took|processed|Diagnosis result" | tail -20
 ```
 
 ```
-2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 
 ```
 </details>
@@ -9444,7 +9444,7 @@ sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/c
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 150 orchestrator 2>&1 | tail -60</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 150 orchestrator 2>&1 | tail -60</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 150 orchestrator 2>&1 | tail -60
@@ -9452,33 +9452,33 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 
 ```
               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-              |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+              |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
               |     return await fut
               |            ^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 400, in _run_diagnosis
+              |   File "/app/client.py", line 400, in _run_diagnosis
               |     result = await mcp_client.process_query(
               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 239, in process_query
+              |   File "/app/client.py", line 239, in process_query
               |     response.raise_for_status()
-              |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+              |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
               |     raise HTTPError(http_error_msg, response=self)
               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
               +------------------------------------
 2025-11-28 02:38:52 [[92mINFO[0m]: Received alert for service=salesforce. Triggering diagnosis.
-INFO:     192.168.65.1:27602 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:27602 - "POST /alerts HTTP/1.1" 200 OK
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-28 02:38:52 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:38:52 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-28 02:38:52 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-28 02:38:52 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:38:53 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:38:53 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:38:53 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:38:53 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:38:53 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:38:53 [[92mINFO[0m]: Creating MCP client session
@@ -9486,8 +9486,8 @@ INFO:     192.168.65.1:27602 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
 2025-11-28 02:38:53 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-28 02:38:53 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-28 02:38:53 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
-2025-11-28 02:38:53 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument &#39;content&#39;
+2025-11-28 02:38:53 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
+2025-11-28 02:38:53 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument 'content'
 2025-11-28 02:38:53 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:38:57 [[92mINFO[0m]: LLM request took 4.01 seconds
 2025-11-28 02:38:57 [[92mINFO[0m]: Sending request to the LLM
@@ -9523,19 +9523,19 @@ The LLM is working now! It's making multiple requests (the agent is iterating th
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 200 orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|processed|Diagnosis|slack_post|create_issue" | tail -30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 200 orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|processed|Diagnosis|slack_post|create_issue" | tail -30</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix -n 200 orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|processed|Diagnosis|slack_post|create_issue" | tail -30
 ```
 
 ```
-2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
-2025-11-28 02:37:24 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:37:25 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
-2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:15:32 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
+2025-11-28 02:37:24 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:37:25 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
+2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 
 ```
 </details>
@@ -9548,53 +9548,53 @@ The LLM is responding but I don't see tool calls being executed. Let me check th
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | tail -80</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | tail -80</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | tail -80
 ```
 
 ```
-            |   File &quot;/usr/local/lib/python3.12/contextlib.py&quot;, line 737, in __aexit__
+            |   File "/usr/local/lib/python3.12/contextlib.py", line 737, in __aexit__
             |     cb_suppress = await cb(*exc_details)
             |                   ^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py&quot;, line 223, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 223, in __aexit__
             |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
             |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            |   File &quot;/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 772, in __aexit__
+            |   File "/app/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 772, in __aexit__
             |     raise BaseExceptionGroup(
             | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
             +-+---------------- 1 ----------------
               | Traceback (most recent call last):
-              |   File &quot;/app/client.py&quot;, line 426, in run_diagnosis_and_post
+              |   File "/app/client.py", line 426, in run_diagnosis_and_post
               |     await wait_for(_run_diagnosis(client), timeout=timeout)
-              |   File &quot;/usr/local/lib/python3.12/asyncio/tasks.py&quot;, line 520, in wait_for
+              |   File "/usr/local/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
               |     return await fut
               |            ^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 400, in _run_diagnosis
+              |   File "/app/client.py", line 400, in _run_diagnosis
               |     result = await mcp_client.process_query(
               |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              |   File &quot;/app/client.py&quot;, line 239, in process_query
+              |   File "/app/client.py", line 239, in process_query
               |     response.raise_for_status()
-              |   File &quot;/app/.venv/lib/python3.12/site-packages/requests/models.py&quot;, line 1026, in raise_for_status
+              |   File "/app/.venv/lib/python3.12/site-packages/requests/models.py", line 1026, in raise_for_status
               |     raise HTTPError(http_error_msg, response=self)
               | requests.exceptions.HTTPError: 500 Server Error: Internal Server Error for url: http://llm-server:8000/generate
               +------------------------------------
 2025-11-28 02:38:52 [[92mINFO[0m]: Received alert for service=salesforce. Triggering diagnosis.
-INFO:     192.168.65.1:27602 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:27602 - "POST /alerts HTTP/1.1" 200 OK
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-28 02:38:52 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:38:52 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-28 02:38:52 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-28 02:38:52 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-28 02:38:52 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-28 02:38:52 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:38:53 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:38:53 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:38:53 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:38:53 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:38:53 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:38:53 [[92mINFO[0m]: Creating MCP client session
@@ -9602,8 +9602,8 @@ INFO:     192.168.65.1:27602 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
 2025-11-28 02:38:53 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:38:53 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-28 02:38:53 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-28 02:38:53 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
-2025-11-28 02:38:53 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument &#39;content&#39;
+2025-11-28 02:38:53 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
+2025-11-28 02:38:53 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument 'content'
 2025-11-28 02:38:53 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:38:57 [[92mINFO[0m]: LLM request took 4.01 seconds
 2025-11-28 02:38:57 [[92mINFO[0m]: Sending request to the LLM
@@ -9647,7 +9647,7 @@ The LLM keeps responding but no tool calls are being logged. This suggests the L
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m llm-server 2>&1 | tail -40</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m llm-server 2>&1 | tail -40</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m llm-server 2>&1 | tail -40
@@ -9659,40 +9659,40 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 2025-11-28 02:38:57 [[92mINFO[0m]: Token usage - Input: 695, Output: 64, Cache: 641, Tools: None, Total: 959
-INFO:     172.22.0.5:58914 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:58914 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:39:03 [[92mINFO[0m]: Token usage - Input: 695, Output: None, Cache: 641, Tools: None, Total: 1694
-INFO:     172.22.0.5:58926 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:58926 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:39:09 [[92mINFO[0m]: Token usage - Input: 695, Output: None, Cache: 641, Tools: None, Total: 1694
-INFO:     172.22.0.5:57802 - &quot;POST /generate HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:42228 - &quot;GET /health HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:57802 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42228 - "GET /health HTTP/1.1" 200 OK
 2025-11-28 02:39:15 [[92mINFO[0m]: Token usage - Input: 695, Output: None, Cache: 641, Tools: None, Total: 1694
-INFO:     172.22.0.5:57814 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:57814 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:39:21 [[92mINFO[0m]: Token usage - Input: 695, Output: None, Cache: 641, Tools: None, Total: 1694
-INFO:     172.22.0.5:37264 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:37264 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:39:57 [[92mINFO[0m]: Token usage - Input: 695, Output: 98, Cache: 641, Tools: None, Total: 1229
-INFO:     172.22.0.5:37270 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:37270 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:01 [[92mINFO[0m]: Token usage - Input: 695, Output: 97, Cache: 641, Tools: None, Total: 1200
-INFO:     172.22.0.5:41256 - &quot;POST /generate HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:43550 - &quot;GET /health HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:41256 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43550 - "GET /health HTTP/1.1" 200 OK
 2025-11-28 02:40:06 [[92mINFO[0m]: Token usage - Input: 695, Output: 160, Cache: 641, Tools: None, Total: 1233
-INFO:     172.22.0.5:41270 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:41270 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:14 [[92mINFO[0m]: Token usage - Input: 695, Output: None, Cache: 641, Tools: None, Total: 1694
-INFO:     172.22.0.5:45078 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:45078 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:18 [[92mINFO[0m]: Token usage - Input: 695, Output: 77, Cache: 641, Tools: None, Total: 1140
-INFO:     172.22.0.5:53392 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:53392 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:24 [[92mINFO[0m]: Token usage - Input: 695, Output: None, Cache: 641, Tools: None, Total: 1694
-INFO:     172.22.0.5:53406 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:53406 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:27 [[92mINFO[0m]: Token usage - Input: 695, Output: 107, Cache: 641, Tools: None, Total: 1137
-INFO:     172.22.0.5:43378 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:43378 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:30 [[92mINFO[0m]: Token usage - Input: 695, Output: 65, Cache: 641, Tools: None, Total: 990
-INFO:     172.22.0.5:43380 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:43380 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:32 [[92mINFO[0m]: Token usage - Input: 695, Output: 84, Cache: 641, Tools: None, Total: 987
-INFO:     172.22.0.5:43394 - &quot;POST /generate HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:59136 - &quot;GET /health HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:43394 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59136 - "GET /health HTTP/1.1" 200 OK
 2025-11-28 02:40:34 [[92mINFO[0m]: Token usage - Input: 695, Output: 63, Cache: 641, Tools: None, Total: 986
-INFO:     172.22.0.5:48538 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:48538 - "POST /generate HTTP/1.1" 200 OK
 2025-11-28 02:40:39 [[92mINFO[0m]: Token usage - Input: 695, Output: 69, Cache: 641, Tools: None, Total: 1298
-INFO:     172.22.0.5:48554 - &quot;POST /generate HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:48554 - "POST /generate HTTP/1.1" 200 OK
 
 ```
 </details>
@@ -9705,7 +9705,7 @@ The LLM is responding (200 OK) but with very low output tokens (64-160). This su
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec llm-server printenv | grep -E "MODEL|PROVIDER"</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec llm-server printenv | grep -E "MODEL|PROVIDER"</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec llm-server printenv | grep -E "MODEL|PROVIDER"
@@ -9726,7 +9726,7 @@ The model is `gemini-2.5-flash`. Let me check if Gemini is actually returning to
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | grep -i "tool" | tail -20</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | grep -i "tool" | tail -20</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | grep -i "tool" | tail -20
@@ -9741,7 +9741,7 @@ No tool calls at all. The LLM is returning text responses instead of tool_use. T
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 30s orchestrator 2>&1</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 30s orchestrator 2>&1</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 30s orchestrator 2>&1
@@ -9814,7 +9814,7 @@ The adapter looks correct. Let me check if Gemini is actually returning function
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 30s orchestrator 2>&1 | grep -i "LLM response\|debug" | tail -10</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 30s orchestrator 2>&1 | grep -i "LLM response\|debug" | tail -10</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 30s orchestrator 2>&1 | grep -i "LLM response\|debug" | tail -10
@@ -9853,14 +9853,14 @@ The issue is the `TOOLS` config. Let me check what tools are configured in the e
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec orchestrator printenv TOOLS</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec orchestrator printenv TOOLS</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml exec orchestrator printenv TOOLS
 ```
 
 ```
-[&quot;get_file_contents&quot;,&quot;create_issue&quot;,&quot;slack_post_message&quot;,&quot;slack_list_channels&quot;]
+["get_file_contents","create_issue","slack_post_message","slack_list_channels"]
 
 ```
 </details>
@@ -9886,7 +9886,7 @@ I see the issue - Gemini needs `automatic_function_calling` to be set to make it
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/llm/utils/clients.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/llm/utils/clients.py</summary>
 
 **Chunk 1**
 Lines added: 5, lines removed: undefined
@@ -9897,7 +9897,7 @@ Lines added: 5, lines removed: undefined
                   max_output_tokens=self.settings.max_tokens,
 +                 tool_config=types.ToolConfig(
 +                     function_calling_config=types.FunctionCallingConfig(
-+                         mode=&quot;AUTO&quot;,
++                         mode="AUTO",
 +                     )
 +                 ),
               ),
@@ -9916,7 +9916,7 @@ Also let me fix the stop_reason mapping - Gemini uses different values:
 
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **code_edit** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/llm/utils/clients.py</summary>
+<details><summary>Tool use: **search_replace** • Edit file: /Users/chetansingh/Documents/Hackathon/sre-agent/sre_agent/llm/utils/clients.py</summary>
 
 **Chunk 1**
 Lines added: 21, lines removed: 3
@@ -9929,30 +9929,30 @@ Lines added: 21, lines removed: 3
 +         # Gemini: STOP, MAX_TOKENS, SAFETY, RECITATION, OTHER
 +         # MCP expects: end_turn, tool_use, max_tokens, stop_sequence
 +         gemini_finish = (
-+             response.candidates[0].finish_reason if response.candidates else &quot;STOP&quot;
++             response.candidates[0].finish_reason if response.candidates else "STOP"
 +         )
-+         if gemini_finish == &quot;STOP&quot;:
-+             # Check if there are function calls - if so, it&#39;s tool_use
++         if gemini_finish == "STOP":
++             # Check if there are function calls - if so, it's tool_use
 +             has_tool_call = any(
 +                 part.function_call
 +                 for c in response.candidates
 +                 if c.content and c.content.parts
 +                 for part in c.content.parts
 +             )
-+             stop_reason = &quot;tool_use&quot; if has_tool_call else &quot;end_turn&quot;
-+         elif gemini_finish == &quot;MAX_TOKENS&quot;:
-+             stop_reason = &quot;max_tokens&quot;
++             stop_reason = "tool_use" if has_tool_call else "end_turn"
++         elif gemini_finish == "MAX_TOKENS":
++             stop_reason = "max_tokens"
 +         else:
-+             stop_reason = &quot;end_turn&quot;
++             stop_reason = "end_turn"
 + 
           return Message(
-              id=response.response_id or f&quot;gemini_{hash(str(response))}&quot;,
+              id=response.response_id or f"gemini_{hash(str(response))}",
               model=response.model_version,
               content=content,
-              role=&quot;assistant&quot;,
+              role="assistant",
 -             stop_reason=response.candidates[0].finish_reason
 -             if response.candidates
--             else &quot;end_turn&quot;,
+-             else "end_turn",
 +             stop_reason=stop_reason,
               usage=Usage(
                   input_tokens=response.usage_metadata.prompt_token_count or 0,
@@ -9965,7 +9965,7 @@ Lines added: 21, lines removed: 3
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml up -d --build llm-server</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml up -d --build llm-server</summary>
 
 ```bash
 cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose.local.yaml up -d --build llm-server
@@ -9974,7 +9974,7 @@ cd /Users/chetansingh/Documents/Hackathon/sre-agent && docker compose -f compose
 ```
 Compose can now delegate builds to bake for better performance.
  To do so, set COMPOSE_BAKE=true.
-#0 building with &quot;desktop-linux&quot; instance using docker driver
+#0 building with "desktop-linux" instance using docker driver
 
 #1 [llm-server internal] load build definition from Dockerfile
 #1 transferring dockerfile: 563B done
@@ -10102,7 +10102,7 @@ Now let's test again:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 5 && curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 5 && curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{"title":"Test Slack Integration","service":"salesforce","annotations":{"summary":"Testing if agent calls tools and posts to Slack"}}'</summary>
@@ -10115,7 +10115,7 @@ sleep 5 && curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;accepted&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"accepted","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -10123,15 +10123,15 @@ sleep 5 && curl -s -X POST http://localhost:8003/alerts \
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 30 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|slack_post|create_issue|requested to use" | tail -20</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 30 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|slack_post|create_issue|requested to use" | tail -20</summary>
 
 ```bash
 sleep 30 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|slack_post|create_issue|requested to use" | tail -20
 ```
 
 ```
-2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 
 ```
 </details>
@@ -10144,7 +10144,7 @@ Still no tool calls. Let me check the LLM server logs:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m llm-server 2>&1 | tail -30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m llm-server 2>&1 | tail -30</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m llm-server 2>&1 | tail -30
@@ -10156,8 +10156,8 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 2025-11-28 02:42:30 [[92mINFO[0m]: Token usage - Input: 699, Output: 135, Cache: 642, Tools: None, Total: 1200
-INFO:     172.22.0.5:51262 - &quot;POST /generate HTTP/1.1&quot; 200 OK
-INFO:     127.0.0.1:41942 - &quot;GET /health HTTP/1.1&quot; 200 OK
+INFO:     172.22.0.5:51262 - "POST /generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41942 - "GET /health HTTP/1.1" 200 OK
 
 ```
 </details>
@@ -10170,7 +10170,7 @@ Only one LLM call and it returned 135 output tokens - likely text, not tool call
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | tail -30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | tail -30</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 1m orchestrator 2>&1 | tail -30
@@ -10179,13 +10179,13 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 ```
 2025-11-28 02:42:26 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-28 02:42:26 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-28 02:42:26 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-28 02:42:26 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:42:26 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:42:26 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:42:26 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:42:26 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:42:26 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:42:26 [[92mINFO[0m]: Creating MCP client session
@@ -10193,8 +10193,8 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 2025-11-28 02:42:26 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:42:26 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-28 02:42:26 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-28 02:42:26 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
-2025-11-28 02:42:26 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument &#39;content&#39;
+2025-11-28 02:42:26 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
+2025-11-28 02:42:26 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument 'content'
 2025-11-28 02:42:26 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:42:30 [[92mINFO[0m]: LLM request took 4.14 seconds
 2025-11-28 02:42:30 [[92mINFO[0m]: Total process_query execution took 4.15 seconds
@@ -10203,10 +10203,10 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 2025-11-28 02:42:30 [[92mINFO[0m]: Query processed successfully
 2025-11-28 02:42:30 [[92mINFO[0m]: Diagnosis result for salesforce: I am unable to retrieve operational signals or logs for the &#96;salesforce&#96; service with the available tools, which are limited to Slack channel listing and messaging, and GitHub file access and issue creation. Therefore, I cannot identify error messages, inspect files, diagnose a root cause, or propose a fix as requested.
 
-The provided alert context &quot;Title: Test Slack Integration, Summary: Testing if agent calls tools and posts to Slack&quot; also does not contain any information related to a &#96;salesforce&#96; service issue.
+The provided alert context "Title: Test Slack Integration, Summary: Testing if agent calls tools and posts to Slack" also does not contain any information related to a &#96;salesforce&#96; service issue.
 
 To proceed, please provide the operational signals, logs, or specific error messages related to the &#96;salesforce&#96; service, including any referenced source files or components.
-2025-11-28 02:42:30 [[93mWARNING[0m]: Failed to upsert RAG summary: name &#39;start_time&#39; is not defined
+2025-11-28 02:42:30 [[93mWARNING[0m]: Failed to upsert RAG summary: name 'start_time' is not defined
 
 ```
 </details>
@@ -10223,7 +10223,7 @@ Let me give it a better prompt with actual error context that references a file:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{
@@ -10250,7 +10250,7 @@ curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;cooldown&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"cooldown","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -10262,7 +10262,7 @@ There's a cooldown active. Let me reset it by waiting or reducing the cooldown:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 120 && curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 120 && curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{
@@ -10289,7 +10289,7 @@ sleep 120 && curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;accepted&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"accepted","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -10297,25 +10297,25 @@ sleep 120 && curl -s -X POST http://localhost:8003/alerts \
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 2m orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|slack_post|create_issue|requested to use|Diagnosis result" | tail -20</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 2m orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|slack_post|create_issue|requested to use|Diagnosis result" | tail -20</summary>
 
 ```bash
 sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 2m orchestrator 2>&1 | grep -E "Calling tool|Tool.*took|slack_post|create_issue|requested to use|Diagnosis result" | tail -20
 ```
 
 ```
-2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:45:30 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:45:30 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}
+2025-11-28 02:45:30 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/handlers/ticketHandler.js'}
 2025-11-28 02:45:35 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:45:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}
+2025-11-28 02:45:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'path': 'sas-core', 'repo': 'disruptionManagament'}
 2025-11-28 02:45:36 [[92mINFO[0m]: Tool get_file_contents call took 0.47 seconds
 2025-11-28 02:45:40 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:45:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;branch&#39;: &#39;irr/develop&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}
-2025-11-28 02:45:47 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}]
-[Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}]
-[Calling tool get_file_contents with args {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;branch&#39;: &#39;irr/develop&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}]
+2025-11-28 02:45:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'branch': 'irr/develop', 'path': 'sas-core/handlers/ticketHandler.js'}
+2025-11-28 02:45:47 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/handlers/ticketHandler.js'}]
+[Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'path': 'sas-core', 'repo': 'disruptionManagament'}]
+[Calling tool get_file_contents with args {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'branch': 'irr/develop', 'path': 'sas-core/handlers/ticketHandler.js'}]
 
 ```
 </details>
@@ -10332,17 +10332,17 @@ Let me check if it completed with Slack and GitHub issue:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | grep -E "slack_post|create_issue|processed|Diagnosis result" | tail -10</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | grep -E "slack_post|create_issue|processed|Diagnosis result" | tail -10</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | grep -E "slack_post|create_issue|processed|Diagnosis result" | tail -10
 ```
 
 ```
-2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:45:47 [[92mINFO[0m]: Query processed successfully
-2025-11-28 02:45:47 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}]
+2025-11-28 02:45:47 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/handlers/ticketHandler.js'}]
 
 ```
 </details>
@@ -10355,29 +10355,29 @@ It processed but didn't get to create_issue or slack_post. The file probably doe
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 5m orchestrator 2>&1 | tail -50</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 5m orchestrator 2>&1 | tail -50</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 5m orchestrator 2>&1 | tail -50
 ```
 
 ```
-INFO:     192.168.65.1:52921 - &quot;POST /alerts HTTP/1.1&quot; 202 Accepted
+INFO:     192.168.65.1:52921 - "POST /alerts HTTP/1.1" 202 Accepted
 2025-11-28 02:45:27 [[92mINFO[0m]: Received alert for service=salesforce. Triggering diagnosis.
-INFO:     192.168.65.1:36109 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
+INFO:     192.168.65.1:36109 - "POST /alerts HTTP/1.1" 200 OK
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating MCPClient for service: salesforce
 2025-11-28 02:45:27 [[92mINFO[0m]: Connecting to SSE server: http://slack:3001/sse
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:45:27 [[92mINFO[0m]: Initialising session for http://slack:3001/sse
 2025-11-28 02:45:27 [[92mINFO[0m]: Initialised SSE client for http://slack:3001/sse
-2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
+2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
 2025-11-28 02:45:27 [[92mINFO[0m]: Connecting to SSE server: http://github:3001/sse
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:45:27 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:45:27 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:45:27 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:45:27 [[92mINFO[0m]: Creating MCP client session
@@ -10385,33 +10385,33 @@ INFO:     192.168.65.1:36109 - &quot;POST /alerts HTTP/1.1&quot; 200 OK
 2025-11-28 02:45:27 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:45:27 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-28 02:45:27 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-28 02:45:27 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
-2025-11-28 02:45:27 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument &#39;content&#39;
+2025-11-28 02:45:27 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
+2025-11-28 02:45:27 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument 'content'
 2025-11-28 02:45:27 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:45:30 [[92mINFO[0m]: LLM request took 2.90 seconds
 2025-11-28 02:45:30 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:45:30 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}
-2025-11-28 02:45:30 [[92mINFO[0m]: Tool &#39;get_file_contents&#39; failed with error: Not Found: Resource not found: Not Found. Tool args were: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}. Check the arguments and try again fixing the error.
+2025-11-28 02:45:30 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/handlers/ticketHandler.js'}
+2025-11-28 02:45:30 [[92mINFO[0m]: Tool 'get_file_contents' failed with error: Not Found: Resource not found: Not Found. Tool args were: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/handlers/ticketHandler.js'}. Check the arguments and try again fixing the error.
 2025-11-28 02:45:30 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:45:35 [[92mINFO[0m]: LLM request took 4.91 seconds
 2025-11-28 02:45:35 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:45:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}
+2025-11-28 02:45:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'path': 'sas-core', 'repo': 'disruptionManagament'}
 2025-11-28 02:45:36 [[92mINFO[0m]: Tool get_file_contents call took 0.47 seconds
 2025-11-28 02:45:36 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:45:40 [[92mINFO[0m]: LLM request took 4.54 seconds
 2025-11-28 02:45:40 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:45:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;branch&#39;: &#39;irr/develop&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}
-2025-11-28 02:45:41 [[92mINFO[0m]: Tool &#39;get_file_contents&#39; failed with error: Not Found: Resource not found: Not Found. Tool args were: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;branch&#39;: &#39;irr/develop&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}. Check the arguments and try again fixing the error.
+2025-11-28 02:45:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'branch': 'irr/develop', 'path': 'sas-core/handlers/ticketHandler.js'}
+2025-11-28 02:45:41 [[92mINFO[0m]: Tool 'get_file_contents' failed with error: Not Found: Resource not found: Not Found. Tool args were: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'branch': 'irr/develop', 'path': 'sas-core/handlers/ticketHandler.js'}. Check the arguments and try again fixing the error.
 2025-11-28 02:45:41 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:45:47 [[92mINFO[0m]: LLM request took 5.73 seconds
 2025-11-28 02:45:47 [[92mINFO[0m]: Total process_query execution took 19.67 seconds
 2025-11-28 02:45:47 [[92mINFO[0m]: Query processing completed
 2025-11-28 02:45:47 [[92mINFO[0m]: Token usage - Input: 5925, Output: 126, Cache Creation: 0, Cache Read: 1537, Total: 6051
 2025-11-28 02:45:47 [[92mINFO[0m]: Query processed successfully
-2025-11-28 02:45:47 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}]
-[Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}]
-[Calling tool get_file_contents with args {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;branch&#39;: &#39;irr/develop&#39;, &#39;path&#39;: &#39;sas-core/handlers/ticketHandler.js&#39;}]
-2025-11-28 02:45:47 [[93mWARNING[0m]: Failed to upsert RAG summary: name &#39;start_time&#39; is not defined
+2025-11-28 02:45:47 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/handlers/ticketHandler.js'}]
+[Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'path': 'sas-core', 'repo': 'disruptionManagament'}]
+[Calling tool get_file_contents with args {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'branch': 'irr/develop', 'path': 'sas-core/handlers/ticketHandler.js'}]
+2025-11-28 02:45:47 [[93mWARNING[0m]: Failed to upsert RAG summary: name 'start_time' is not defined
 
 ```
 </details>
@@ -10444,7 +10444,7 @@ Let me check what files actually exist in your repo's `sas-core` folder:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core" | head -50</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core" | head -50</summary>
 
 ```bash
 curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core" | head -50
@@ -10453,51 +10453,51 @@ curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/conte
 ```
 [
   {
-    &quot;name&quot;: &quot;destructiveChangesPost.xml&quot;,
-    &quot;path&quot;: &quot;sas-core/destructiveChangesPost.xml&quot;,
-    &quot;sha&quot;: &quot;3260052e28017b64009bc9278e49e22fe815e497&quot;,
-    &quot;size&quot;: 1470,
-    &quot;url&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPost.xml?ref=irr/develop&quot;,
-    &quot;html_url&quot;: &quot;https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPost.xml&quot;,
-    &quot;git_url&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/3260052e28017b64009bc9278e49e22fe815e497&quot;,
-    &quot;download_url&quot;: &quot;https://raw.githubusercontent.com/PseudoDarwinist/disruptionManagament/irr/develop/sas-core/destructiveChangesPost.xml&quot;,
-    &quot;type&quot;: &quot;file&quot;,
-    &quot;_links&quot;: {
-      &quot;self&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPost.xml?ref=irr/develop&quot;,
-      &quot;git&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/3260052e28017b64009bc9278e49e22fe815e497&quot;,
-      &quot;html&quot;: &quot;https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPost.xml&quot;
+    "name": "destructiveChangesPost.xml",
+    "path": "sas-core/destructiveChangesPost.xml",
+    "sha": "3260052e28017b64009bc9278e49e22fe815e497",
+    "size": 1470,
+    "url": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPost.xml?ref=irr/develop",
+    "html_url": "https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPost.xml",
+    "git_url": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/3260052e28017b64009bc9278e49e22fe815e497",
+    "download_url": "https://raw.githubusercontent.com/PseudoDarwinist/disruptionManagament/irr/develop/sas-core/destructiveChangesPost.xml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPost.xml?ref=irr/develop",
+      "git": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/3260052e28017b64009bc9278e49e22fe815e497",
+      "html": "https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPost.xml"
     }
   },
   {
-    &quot;name&quot;: &quot;destructiveChangesPre.xml&quot;,
-    &quot;path&quot;: &quot;sas-core/destructiveChangesPre.xml&quot;,
-    &quot;sha&quot;: &quot;395e27e08d1887729972d8e4795ef777dbe67b63&quot;,
-    &quot;size&quot;: 580,
-    &quot;url&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPre.xml?ref=irr/develop&quot;,
-    &quot;html_url&quot;: &quot;https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPre.xml&quot;,
-    &quot;git_url&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/395e27e08d1887729972d8e4795ef777dbe67b63&quot;,
-    &quot;download_url&quot;: &quot;https://raw.githubusercontent.com/PseudoDarwinist/disruptionManagament/irr/develop/sas-core/destructiveChangesPre.xml&quot;,
-    &quot;type&quot;: &quot;file&quot;,
-    &quot;_links&quot;: {
-      &quot;self&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPre.xml?ref=irr/develop&quot;,
-      &quot;git&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/395e27e08d1887729972d8e4795ef777dbe67b63&quot;,
-      &quot;html&quot;: &quot;https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPre.xml&quot;
+    "name": "destructiveChangesPre.xml",
+    "path": "sas-core/destructiveChangesPre.xml",
+    "sha": "395e27e08d1887729972d8e4795ef777dbe67b63",
+    "size": 580,
+    "url": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPre.xml?ref=irr/develop",
+    "html_url": "https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPre.xml",
+    "git_url": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/395e27e08d1887729972d8e4795ef777dbe67b63",
+    "download_url": "https://raw.githubusercontent.com/PseudoDarwinist/disruptionManagament/irr/develop/sas-core/destructiveChangesPre.xml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/destructiveChangesPre.xml?ref=irr/develop",
+      "git": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/blobs/395e27e08d1887729972d8e4795ef777dbe67b63",
+      "html": "https://github.com/PseudoDarwinist/disruptionManagament/blob/irr/develop/sas-core/destructiveChangesPre.xml"
     }
   },
   {
-    &quot;name&quot;: &quot;emails&quot;,
-    &quot;path&quot;: &quot;sas-core/emails&quot;,
-    &quot;sha&quot;: &quot;61cb71a0a05f1283bd685e0ee29e0c4aef4d654b&quot;,
-    &quot;size&quot;: 0,
-    &quot;url&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/emails?ref=irr/develop&quot;,
-    &quot;html_url&quot;: &quot;https://github.com/PseudoDarwinist/disruptionManagament/tree/irr/develop/sas-core/emails&quot;,
-    &quot;git_url&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/trees/61cb71a0a05f1283bd685e0ee29e0c4aef4d654b&quot;,
-    &quot;download_url&quot;: null,
-    &quot;type&quot;: &quot;dir&quot;,
-    &quot;_links&quot;: {
-      &quot;self&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/emails?ref=irr/develop&quot;,
-      &quot;git&quot;: &quot;https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/trees/61cb71a0a05f1283bd685e0ee29e0c4aef4d654b&quot;,
-      &quot;html&quot;: &quot;https://github.com/PseudoDarwinist/disruptionManagament/tree/irr/develop/sas-core/emails&quot;
+    "name": "emails",
+    "path": "sas-core/emails",
+    "sha": "61cb71a0a05f1283bd685e0ee29e0c4aef4d654b",
+    "size": 0,
+    "url": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/emails?ref=irr/develop",
+    "html_url": "https://github.com/PseudoDarwinist/disruptionManagament/tree/irr/develop/sas-core/emails",
+    "git_url": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/trees/61cb71a0a05f1283bd685e0ee29e0c4aef4d654b",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/emails?ref=irr/develop",
+      "git": "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/git/trees/61cb71a0a05f1283bd685e0ee29e0c4aef4d654b",
+      "html": "https://github.com/PseudoDarwinist/disruptionManagament/tree/irr/develop/sas-core/emails"
     }
   },
   {
@@ -10513,23 +10513,23 @@ Your repo has different files. Let me find an actual Apex class to use:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/main/default/classes" 2>/dev/null | grep '"name"' | head -10</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/main/default/classes" 2>/dev/null | grep '"name"' | head -10</summary>
 
 ```bash
 curl -s "https://api.github.com/repos/PseudoDarwinist/disruptionManagament/contents/sas-core/main/default/classes" 2>/dev/null | grep '"name"' | head -10
 ```
 
 ```
-    &quot;name&quot;: &quot;AD_SamlJitHandler.cls&quot;,
-    &quot;name&quot;: &quot;AD_SamlJitHandler.cls-meta.xml&quot;,
-    &quot;name&quot;: &quot;AD_SamlJitHandler_Test.cls&quot;,
-    &quot;name&quot;: &quot;AD_SamlJitHandler_Test.cls-meta.xml&quot;,
-    &quot;name&quot;: &quot;APIM_AuthConnector.cls&quot;,
-    &quot;name&quot;: &quot;APIM_AuthConnector.cls-meta.xml&quot;,
-    &quot;name&quot;: &quot;APIM_AuthConnector_v2.cls&quot;,
-    &quot;name&quot;: &quot;APIM_AuthConnector_v2.cls-meta.xml&quot;,
-    &quot;name&quot;: &quot;C_Application.cls&quot;,
-    &quot;name&quot;: &quot;C_Application.cls-meta.xml&quot;,
+    "name": "AD_SamlJitHandler.cls",
+    "name": "AD_SamlJitHandler.cls-meta.xml",
+    "name": "AD_SamlJitHandler_Test.cls",
+    "name": "AD_SamlJitHandler_Test.cls-meta.xml",
+    "name": "APIM_AuthConnector.cls",
+    "name": "APIM_AuthConnector.cls-meta.xml",
+    "name": "APIM_AuthConnector_v2.cls",
+    "name": "APIM_AuthConnector_v2.cls-meta.xml",
+    "name": "C_Application.cls",
+    "name": "C_Application.cls-meta.xml",
 
 ```
 </details>
@@ -10542,7 +10542,7 @@ Now let's send an alert with a real file from your repo:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 60 && curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 60 && curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{
@@ -10569,7 +10569,7 @@ sleep 60 && curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;accepted&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"accepted","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -10577,25 +10577,25 @@ sleep 60 && curl -s -X POST http://localhost:8003/alerts \
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 90 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | grep -E "Calling tool|slack_post|create_issue|Diagnosis result" | tail -30</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 90 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | grep -E "Calling tool|slack_post|create_issue|Diagnosis result" | tail -30</summary>
 
 ```bash
 sleep 90 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 3m orchestrator 2>&1 | grep -E "Calling tool|slack_post|create_issue|Diagnosis result" | tail -30
 ```
 
 ```
-2025-11-28 02:48:07 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:48:08 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
-2025-11-28 02:48:12 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/APIM_AuthConnector.cls&#39;}
-2025-11-28 02:48:33 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;}
-2025-11-28 02:48:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/main&#39;}
-2025-11-28 02:48:37 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}
-2025-11-28 02:48:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default/classes/APIM_AuthConnector.cls&#39;}
-2025-11-28 02:48:59 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/APIM_AuthConnector.cls&#39;}]
-[Calling tool get_file_contents with args {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;}]
-[Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/main&#39;}]
-[Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}]
-[Calling tool get_file_contents with args {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default/classes/APIM_AuthConnector.cls&#39;}]
+2025-11-28 02:48:07 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:48:08 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
+2025-11-28 02:48:12 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/APIM_AuthConnector.cls'}
+2025-11-28 02:48:33 [[92mINFO[0m]: Calling tool get_file_contents with args: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core'}
+2025-11-28 02:48:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/main'}
+2025-11-28 02:48:37 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default', 'repo': 'disruptionManagament'}
+2025-11-28 02:48:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default/classes/APIM_AuthConnector.cls'}
+2025-11-28 02:48:59 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/APIM_AuthConnector.cls'}]
+[Calling tool get_file_contents with args {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core'}]
+[Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/main'}]
+[Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default', 'repo': 'disruptionManagament'}]
+[Calling tool get_file_contents with args {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default/classes/APIM_AuthConnector.cls'}]
 
 ```
 </details>
@@ -10608,7 +10608,7 @@ It found the file and read it! Let me check if it created the issue and posted t
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 5m orchestrator 2>&1 | tail -60</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 5m orchestrator 2>&1 | tail -60</summary>
 
 ```bash
 docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 5m orchestrator 2>&1 | tail -60
@@ -10618,7 +10618,7 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 2025-11-28 02:48:08 [[92mINFO[0m]: Creating MCP client session
 2025-11-28 02:48:08 [[92mINFO[0m]: Initialising session for http://github:3001/sse
 2025-11-28 02:48:08 [[92mINFO[0m]: Initialised SSE client for http://github:3001/sse
-2025-11-28 02:48:08 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:48:08 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:48:08 [[92mINFO[0m]: Connecting to SSE server: http://prompt-server:3001/sse
 2025-11-28 02:48:08 [[92mINFO[0m]: Creating SSE client context
 2025-11-28 02:48:08 [[92mINFO[0m]: Creating MCP client session
@@ -10626,13 +10626,13 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 2025-11-28 02:48:08 [[92mINFO[0m]: Initialised SSE client for http://prompt-server:3001/sse
 2025-11-28 02:48:08 [[92mINFO[0m]: Connected to http://prompt-server:3001/sse with tools: []
 2025-11-28 02:48:08 [[92mINFO[0m]: MCPClient connections established successfully.
-2025-11-28 02:48:08 [[92mINFO[0m]: Processing query: content=[TextBlock(text=&#39;There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.&#39;, type=&#39;text&#39;)] role=&#39;user&#39;...
-2025-11-28 02:48:09 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument &#39;content&#39;
+2025-11-28 02:48:08 [[92mINFO[0m]: Processing query: content=[TextBlock(text='There is a suspected issue with the &#96;salesforce&#96; service. Using the\navailable tools, do the following once:\n\n1) Retrieve the most recent 1000 operational signals (e.g., logs, error events,\n   incidents, or relevant records) you can access for &#96;salesforce&#96;. Identify any\n   concrete error messages that reference source files or components.\n\n2) Using GitHub access, navigate within\n   &#96;PseudoDarwinist/disruptionManagament&#96;\n   under &#96;sas-core&#96; to find the referenced file(s)\n   and fetch their contents. If exact files aren’t referenced, inspect likely modules\n   based on the error context.\n\n3) Diagnose the root cause. Propose a specific fix. Then create a GitHub issue with:\n   - Title: concise summary of the root cause\n   - Body: steps to reproduce (if applicable), impacted area, and proposed fix\n\n4) Post a single summary message to Slack channel &#96;C095S2NQQMV&#96; with the\n   diagnosis, the created issue URL, and any immediate mitigations.\n\nImportant constraints:\n- Use only the tools available.\n- Do not create multiple issues or multiple Slack messages; do it once when ready.\n- If signals aren’t available, focus on code inspection aligned to the error context.', type='text')] role='user'...
+2025-11-28 02:48:09 [[93mWARNING[0m]: RAG query failed: Models.embed_content() got an unexpected keyword argument 'content'
 2025-11-28 02:48:09 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:12 [[92mINFO[0m]: LLM request took 3.46 seconds
 2025-11-28 02:48:12 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:48:12 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/APIM_AuthConnector.cls&#39;}
-2025-11-28 02:48:13 [[92mINFO[0m]: Tool &#39;get_file_contents&#39; failed with error: Not Found: Resource not found: Not Found. Tool args were: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/APIM_AuthConnector.cls&#39;}. Check the arguments and try again fixing the error.
+2025-11-28 02:48:12 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/APIM_AuthConnector.cls'}
+2025-11-28 02:48:13 [[92mINFO[0m]: Tool 'get_file_contents' failed with error: Not Found: Resource not found: Not Found. Tool args were: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/APIM_AuthConnector.cls'}. Check the arguments and try again fixing the error.
 2025-11-28 02:48:13 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:18 [[92mINFO[0m]: LLM request took 5.36 seconds
 2025-11-28 02:48:18 [[92mINFO[0m]: Sending request to the LLM
@@ -10642,22 +10642,22 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 2025-11-28 02:48:29 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:33 [[92mINFO[0m]: LLM request took 3.23 seconds
 2025-11-28 02:48:33 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:48:33 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;}
+2025-11-28 02:48:33 [[92mINFO[0m]: Calling tool get_file_contents with args: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core'}
 2025-11-28 02:48:33 [[92mINFO[0m]: Tool get_file_contents call took 0.83 seconds
 2025-11-28 02:48:33 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:35 [[92mINFO[0m]: LLM request took 1.72 seconds
 2025-11-28 02:48:35 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:48:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/main&#39;}
+2025-11-28 02:48:35 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/main'}
 2025-11-28 02:48:35 [[92mINFO[0m]: Tool get_file_contents call took 0.37 seconds
 2025-11-28 02:48:35 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:37 [[92mINFO[0m]: LLM request took 1.94 seconds
 2025-11-28 02:48:37 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:48:37 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}
+2025-11-28 02:48:37 [[92mINFO[0m]: Calling tool get_file_contents with args: {'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default', 'repo': 'disruptionManagament'}
 2025-11-28 02:48:38 [[92mINFO[0m]: Tool get_file_contents call took 0.35 seconds
 2025-11-28 02:48:38 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:40 [[92mINFO[0m]: LLM request took 2.33 seconds
 2025-11-28 02:48:40 [[92mINFO[0m]: LLM requested to use tool: get_file_contents
-2025-11-28 02:48:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default/classes/APIM_AuthConnector.cls&#39;}
+2025-11-28 02:48:40 [[92mINFO[0m]: Calling tool get_file_contents with args: {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default/classes/APIM_AuthConnector.cls'}
 2025-11-28 02:48:40 [[92mINFO[0m]: Tool get_file_contents call took 0.40 seconds
 2025-11-28 02:48:40 [[92mINFO[0m]: Sending request to the LLM
 2025-11-28 02:48:47 [[92mINFO[0m]: LLM request took 6.68 seconds
@@ -10669,12 +10669,12 @@ docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local
 2025-11-28 02:48:59 [[92mINFO[0m]: Query processing completed
 2025-11-28 02:48:59 [[92mINFO[0m]: Token usage - Input: 82130, Output: 203, Cache Creation: 0, Cache Read: 42281, Total: 82333
 2025-11-28 02:48:59 [[92mINFO[0m]: Query processed successfully
-2025-11-28 02:48:59 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/APIM_AuthConnector.cls&#39;}]
-[Calling tool get_file_contents with args {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core&#39;}]
-[Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;path&#39;: &#39;sas-core/main&#39;}]
-[Calling tool get_file_contents with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}]
-[Calling tool get_file_contents with args {&#39;repo&#39;: &#39;disruptionManagament&#39;, &#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;path&#39;: &#39;sas-core/main/default/classes/APIM_AuthConnector.cls&#39;}]
-2025-11-28 02:48:59 [[93mWARNING[0m]: Failed to upsert RAG summary: name &#39;start_time&#39; is not defined
+2025-11-28 02:48:59 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/APIM_AuthConnector.cls'}]
+[Calling tool get_file_contents with args {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core'}]
+[Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'repo': 'disruptionManagament', 'path': 'sas-core/main'}]
+[Calling tool get_file_contents with args {'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default', 'repo': 'disruptionManagament'}]
+[Calling tool get_file_contents with args {'repo': 'disruptionManagament', 'owner': 'PseudoDarwinist', 'path': 'sas-core/main/default/classes/APIM_AuthConnector.cls'}]
+2025-11-28 02:48:59 [[93mWARNING[0m]: Failed to upsert RAG summary: name 'start_time' is not defined
 
 ```
 </details>
@@ -10717,7 +10717,7 @@ Let me send a simpler test that forces the agent to post to Slack:
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 60 && curl -s -X POST http://localhost:8003/alerts \
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 60 && curl -s -X POST http://localhost:8003/alerts \
   -H "Content-Type: application/json" \
   -H "X-Alert-Secret: demo-secret-123" \
   -d '{
@@ -10742,7 +10742,7 @@ sleep 60 && curl -s -X POST http://localhost:8003/alerts \
 ```
 
 ```
-{&quot;status&quot;:&quot;accepted&quot;,&quot;service&quot;:&quot;salesforce&quot;}
+{"status":"accepted","service":"salesforce"}
 ```
 </details>
 </tool-use>
@@ -10750,23 +10750,23 @@ sleep 60 && curl -s -X POST http://localhost:8003/alerts \
 ---
 
 <tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
-<details><summary>Tool use: **command** • Run command: sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 2m orchestrator 2>&1 | grep -E "create_issue|slack_post|Calling tool" | tail -20</summary>
+<details><summary>Tool use: **run_terminal_cmd** • Run command: sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 2m orchestrator 2>&1 | grep -E "create_issue|slack_post|Calling tool" | tail -20</summary>
 
 ```bash
 sleep 60 && docker compose -f /Users/chetansingh/Documents/Hackathon/sre-agent/compose.local.yaml logs --no-log-prefix --since 2m orchestrator 2>&1 | grep -E "create_issue|slack_post|Calling tool" | tail -20
 ```
 
 ```
-2025-11-28 02:51:07 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: [&#39;slack_list_channels&#39;, &#39;slack_post_message&#39;, &#39;slack_reply_to_thread&#39;, &#39;slack_add_reaction&#39;, &#39;slack_get_channel_history&#39;, &#39;slack_get_thread_replies&#39;, &#39;slack_get_users&#39;, &#39;slack_get_user_profile&#39;]
-2025-11-28 02:51:08 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: [&#39;create_or_update_file&#39;, &#39;search_repositories&#39;, &#39;create_repository&#39;, &#39;get_file_contents&#39;, &#39;push_files&#39;, &#39;create_issue&#39;, &#39;create_pull_request&#39;, &#39;fork_repository&#39;, &#39;create_branch&#39;, &#39;list_commits&#39;, &#39;list_issues&#39;, &#39;update_issue&#39;, &#39;add_issue_comment&#39;, &#39;search_code&#39;, &#39;search_issues&#39;, &#39;search_users&#39;, &#39;get_issue&#39;, &#39;get_pull_request&#39;, &#39;list_pull_requests&#39;, &#39;create_pull_request_review&#39;, &#39;merge_pull_request&#39;, &#39;get_pull_request_files&#39;, &#39;get_pull_request_status&#39;, &#39;update_pull_request_branch&#39;, &#39;get_pull_request_comments&#39;, &#39;get_pull_request_reviews&#39;]
+2025-11-28 02:51:07 [[92mINFO[0m]: Connected to http://slack:3001/sse with tools: ['slack_list_channels', 'slack_post_message', 'slack_reply_to_thread', 'slack_add_reaction', 'slack_get_channel_history', 'slack_get_thread_replies', 'slack_get_users', 'slack_get_user_profile']
+2025-11-28 02:51:08 [[92mINFO[0m]: Connected to http://github:3001/sse with tools: ['create_or_update_file', 'search_repositories', 'create_repository', 'get_file_contents', 'push_files', 'create_issue', 'create_pull_request', 'fork_repository', 'create_branch', 'list_commits', 'list_issues', 'update_issue', 'add_issue_comment', 'search_code', 'search_issues', 'search_users', 'get_issue', 'get_pull_request', 'list_pull_requests', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews']
 2025-11-28 02:51:12 [[92mINFO[0m]: LLM requested to use tool: create_issue
-2025-11-28 02:51:12 [[92mINFO[0m]: Calling tool create_issue with args: {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;title&#39;: &#39;Test Issue&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}
-2025-11-28 02:51:13 [[92mINFO[0m]: Tool &#39;create_issue&#39; failed with error: Failed to create issue: Resource not accessible by personal access token
+2025-11-28 02:51:12 [[92mINFO[0m]: Calling tool create_issue with args: {'owner': 'PseudoDarwinist', 'title': 'Test Issue', 'repo': 'disruptionManagament'}
+2025-11-28 02:51:13 [[92mINFO[0m]: Tool 'create_issue' failed with error: Failed to create issue: Resource not accessible by personal access token
 2025-11-28 02:51:17 [[92mINFO[0m]: LLM requested to use tool: slack_post_message
-2025-11-28 02:51:17 [[92mINFO[0m]: Calling tool slack_post_message with args: {&#39;text&#39;: &quot;Test Alert - Test was NOT successful. I attempted to create a GitHub issue titled &#39;Test Issue&#39; in PseudoDarwinist/disruptionManagament but encountered a &#39;Resource not accessible by personal access token&#39; error, preventing issue creation. There is no issue URL to provide.&quot;, &#39;slack_channel_id&#39;: &#39;C095S2NQQMV&#39;}
+2025-11-28 02:51:17 [[92mINFO[0m]: Calling tool slack_post_message with args: {'text': "Test Alert - Test was NOT successful. I attempted to create a GitHub issue titled 'Test Issue' in PseudoDarwinist/disruptionManagament but encountered a 'Resource not accessible by personal access token' error, preventing issue creation. There is no issue URL to provide.", 'slack_channel_id': 'C095S2NQQMV'}
 2025-11-28 02:51:18 [[92mINFO[0m]: Tool slack_post_message call took 0.82 seconds
-2025-11-28 02:51:22 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool create_issue with args {&#39;owner&#39;: &#39;PseudoDarwinist&#39;, &#39;title&#39;: &#39;Test Issue&#39;, &#39;repo&#39;: &#39;disruptionManagament&#39;}]
-[Calling tool slack_post_message with args {&#39;text&#39;: &quot;Test Alert - Test was NOT successful. I attempted to create a GitHub issue titled &#39;Test Issue&#39; in PseudoDarwinist/disruptionManagament but encountered a &#39;Resource not accessible by personal access token&#39; error, preventing issue creation. There is no issue URL to provide.&quot;, &#39;slack_channel_id&#39;: &#39;C095S2NQQMV&#39;}]
+2025-11-28 02:51:22 [[92mINFO[0m]: Diagnosis result for salesforce: [Calling tool create_issue with args {'owner': 'PseudoDarwinist', 'title': 'Test Issue', 'repo': 'disruptionManagament'}]
+[Calling tool slack_post_message with args {'text': "Test Alert - Test was NOT successful. I attempted to create a GitHub issue titled 'Test Issue' in PseudoDarwinist/disruptionManagament but encountered a 'Resource not accessible by personal access token' error, preventing issue creation. There is no issue URL to provide.", 'slack_channel_id': 'C095S2NQQMV'}]
 
 ```
 </details>

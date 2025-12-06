@@ -1,21 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 2, 6, 23;
-  --background-end-rgb: 15, 23, 42;
+@theme {
+  --color-neo-bg: #fff1f2; /* Rose-50 */
+  --color-neo-black: #18181b;
+  --color-neo-yellow: #fef08a;
+  --color-neo-blue: #bae6fd;
+  --color-neo-pink: #fbcfe8;
+  --color-neo-green: #bbf7d0;
+  
+  --font-mono: "Courier New", Courier, monospace;
+  --font-sans: "Arial Black", "Helvetica Neue", sans-serif;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-  min-height: 100vh;
+  background-color: var(--color-neo-bg);
+  color: var(--color-neo-black);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  background: #000;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-left: 2px solid #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ff0055;
+  border: 2px solid #000;
+  box-shadow: inset -2px -2px 0px rgba(0,0,0,0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d60046;
+}
+
+/* Utility classes for Neo-Brutalism */
+.neo-box {
+  border: 3px solid #000;
+  box-shadow: 5px 5px 0px 0px #000;
+  transition: all 0.2s ease;
+}
+
+.neo-box:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 7px 7px 0px 0px #000;
+}
+
+.neo-box:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #000;
+}
+
+.neo-input {
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0px 0px #000;
+}
+
+.neo-input:focus {
+  outline: none;
+  box-shadow: 6px 6px 0px 0px #000;
+  transform: translate(-2px, -2px);
+}
+
+.text-stroke {
+  -webkit-text-stroke: 1px #000;
+  color: transparent;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Activity, Search, Sparkles, Radio } from 'lucide-react';
+import { Activity, Search, Sparkles, Radio, Zap } from 'lucide-react';
 import { StatusBadge } from './components/StatusBadge';
 import { InvestigationFeed, LogEntry } from './components/InvestigationFeed';
 import { DiagnosisReport } from './components/DiagnosisReport';
@@ -171,6 +171,55 @@ export default function Home() {
         };
     }, []);
 
+    // Poll for new alert-triggered runs (auto-subscribe to Grafana alerts)
+    useEffect(() => {
+        let lastSeenRunId: string | null = null;
+        
+        const pollForAlerts = async () => {
+            try {
+                const res = await fetch(`${ORCHESTRATOR_URL}/latest-run`);
+                if (!res.ok) return;
+                
+                const data = await res.json();
+                
+                // Check if there's a new run we haven't seen
+                if (
+                    data.run_id && 
+                    data.run_id !== lastSeenRunId && 
+                    data.run_id !== runId && 
+                    !isDiagnosing
+                ) {
+                    lastSeenRunId = data.run_id;
+                    
+                    // Auto-subscribe to the new alert-triggered run
+                    setRunId(data.run_id);
+                    setServiceName(data.service || '');
+                    setIsDiagnosing(true);
+                    setLogs([{
+                        id: 'alert-init',
+                        message: `🚨 Alert detected for ${data.service}! Auto-subscribing...`,
+                        type: 'info',
+                        timestamp: Date.now()
+                    }]);
+                    setReport(null);
+                    setEvents([]);
+                    setPipelineState(initialPipelineState);
+                    
+                    subscribeToEvents(data.run_id);
+                }
+            } catch {
+                // Silently ignore polling errors
+            }
+        };
+
+        const interval = setInterval(pollForAlerts, 3000);
+        
+        // Initial poll
+        pollForAlerts();
+        
+        return () => clearInterval(interval);
+    }, [runId, isDiagnosing, subscribeToEvents]);
+
     const handleDiagnose = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!serviceName.trim()) return;
@@ -225,91 +274,124 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-screen p-8 max-w-7xl mx-auto relative overflow-hidden">
-            {/* Background Effects */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] -z-10 pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-purple-600/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+        <main className="min-h-screen bg-[#e0f2fe] font-sans overflow-x-hidden relative selection:bg-pink-400 selection:text-black">
+            {/* Background grid */}
+            <div className="fixed inset-0 opacity-10 pointer-events-none z-0" 
+                 style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Header */}
-            <header className="flex items-center justify-between mb-8 relative z-10">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30 ring-1 ring-white/20">
-                        <Activity className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
-                            SRE Agent
-                            <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 font-mono">v2.0</span>
-                        </h1>
-                        <p className="text-slate-400 text-sm font-medium">Autonomous Incident Response System</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    {isListening && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full">
-                            <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                            <span className="text-xs text-emerald-400 font-medium">Live</span>
-                        </div>
-                    )}
-                    <StatusBadge label="GitHub" status="connected" />
-                    <StatusBadge label="Slack" status="connected" />
-                </div>
-            </header>
-
-            {/* Pipeline Visualization */}
-            <div className="mb-8">
-                <PipelineFlow state={pipelineState} />
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                {/* Left Column: Controls & Feed */}
-                <div className="lg:col-span-5 space-y-6">
-                    {/* Search Card */}
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 backdrop-blur-sm">
-                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-purple-400" />
-                            Start Investigation
-                        </h2>
-                        <form onSubmit={handleDiagnose} className="space-y-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                                <input
-                                    type="text"
-                                    value={serviceName}
-                                    onChange={(e) => setServiceName(e.target.value)}
-                                    placeholder="Enter service name (e.g., cartservice)..."
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg py-3 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                                />
+            <div className="relative z-10 max-w-[1400px] mx-auto p-4 md:p-8">
+                
+                {/* Header */}
+                <header className="mb-12">
+                    <div className="bg-black text-white p-6 border-b-8 border-yellow-400 shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 bg-white border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_0px_#fbbf24]">
+                                    <Activity className="w-10 h-10 text-black animate-pulse" />
+                                </div>
+                                <div>
+                                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none italic">
+                                        el Agénte <span className="text-yellow-400 not-italic text-3xl align-top">v2.0</span>
+                                    </h1>
+                                    <p className="font-mono text-sm text-gray-400 uppercase tracking-widest">Autonomous Incident Response System</p>
+                                </div>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={isDiagnosing || !serviceName}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-900/20"
-                            >
-                                {isDiagnosing ? 'Agent Working...' : 'Diagnose Service'}
-                            </button>
-                        </form>
+                            
+                            <div className="flex items-center gap-4">
+                                {isListening ? (
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-[#86efac] border-4 border-black animate-bounce shadow-[4px_4px_0px_0px_#000]">
+                                        <Radio className="w-4 h-4 text-black animate-pulse" />
+                                        <span className="text-xs text-black font-black uppercase">Live</span>
+                                    </div>
+                                ) : !isDiagnosing && (
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-[#fca5a5] border-4 border-black shadow-[4px_4px_0px_0px_#000]">
+                                        <Radio className="w-4 h-4 text-black" />
+                                        <span className="text-xs text-black font-black uppercase">Awaiting Alerts</span>
+                                    </div>
+                                )}
+                                <StatusBadge label="GitHub" status="connected" />
+                                <StatusBadge label="Slack" status="connected" />
+                            </div>
+                        </div>
                     </div>
+                    
+                    {/* Marquee Tape */}
+                    <div className="bg-yellow-400 border-4 border-black py-2 overflow-hidden mt-6 transform rotate-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                        <div className="animate-marquee whitespace-nowrap font-black text-sm uppercase tracking-widest flex gap-8">
+                            <span>{'/// SYSTEM NORMAL'}</span>
+                            <span>{'/// MONITORING ACTIVE'}</span>
+                            <span>{'/// NO ANOMALIES DETECTED'}</span>
+                            <span>{'/// WAITING FOR INPUT'}</span>
+                            <span>{'/// SYSTEM NORMAL'}</span>
+                            <span>{'/// MONITORING ACTIVE'}</span>
+                            <span>{'/// NO ANOMALIES DETECTED'}</span>
+                            <span>{'/// WAITING FOR INPUT'}</span>
+                        </div>
+                    </div>
+                </header>
 
-                    {/* Feed */}
-                    <div className="h-[500px]">
+                {/* Pipeline Visualization */}
+                <div className="mb-12">
+                    <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2">
+                        <span className="bg-black text-white px-2">Pipeline</span> Status
+                    </h3>
+                    <PipelineFlow state={pipelineState} />
+                </div>
+
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Left Column: Controls & Feed */}
+                    <div className="lg:col-span-5 space-y-8">
+                        {/* Search Card */}
+                        <div className="bg-[#fff1f2] border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                            <h2 className="text-xl font-black text-black mb-6 flex items-center gap-2 uppercase transform -rotate-1">
+                                <Sparkles className="w-6 h-6 text-black" />
+                                Start Investigation
+                            </h2>
+                            <form onSubmit={handleDiagnose} className="space-y-4">
+                                <div className="relative group">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-black transition-transform group-hover:scale-110" />
+                                    <input
+                                        type="text"
+                                        value={serviceName}
+                                        onChange={(e) => setServiceName(e.target.value)}
+                                        placeholder="ENTER SERVICE NAME..."
+                                        className="w-full bg-white border-4 border-black py-4 pl-14 pr-4 text-black placeholder:text-gray-400 font-mono font-bold focus:outline-none focus:shadow-[6px_6px_0px_0px_#000] focus:-translate-y-1 transition-all uppercase"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={isDiagnosing || !serviceName}
+                                    className="w-full bg-[#bae6fd] hover:bg-[#7dd3fc] text-black font-black py-4 border-4 border-black shadow-[4px_4px_0px_0px_#000] hover:shadow-[6px_6px_0px_0px_#000] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[2px_2px_0px_0px_#000] transition-all uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
+                                >
+                                    {isDiagnosing ? (
+                                        <>
+                                            <Zap className="w-5 h-5 animate-spin" />
+                                            Running Diagnostics...
+                                        </>
+                                    ) : (
+                                        'Diagnose Service'
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Feed */}
                         <InvestigationFeed logs={logs} />
                     </div>
-                </div>
 
-                {/* Right Column: Results */}
-                <div className="lg:col-span-7">
-                    {report ? (
-                        <DiagnosisReport report={report} />
-                    ) : (
-                        <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/20">
-                            <Activity className="w-12 h-12 mb-4 opacity-20" />
-                            <p>Ready to analyze system health</p>
-                        </div>
-                    )}
+                    {/* Right Column: Results */}
+                    <div className="lg:col-span-7 min-h-[600px]">
+                        {report ? (
+                            <DiagnosisReport report={report} />
+                        ) : (
+                            <div className="h-full min-h-[600px] flex flex-col items-center justify-center text-neutral-400 border-4 border-dashed border-neutral-300 bg-neutral-50 rounded-none">
+                                <Activity className="w-24 h-24 mb-6 opacity-20 animate-bounce" />
+                                <p className="font-black text-xl uppercase tracking-widest opacity-40">Ready to analyze</p>
+                                <p className="font-mono text-sm mt-2 opacity-40">WAITING FOR TRIGGER EVENT...</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </main>

@@ -31,6 +31,7 @@ services:
     volumes:
       - ./observability/promtail/config.yaml:/etc/promtail/config.yaml:ro
       - ./logs/app:/var/log/app:ro
+      - ./demo-app/logs:/var/log/demo-app:ro
     depends_on:
       - loki
   slack:
@@ -59,6 +60,25 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  loki-mcp:
+    build:
+      context: sre_agent
+      dockerfile: servers/loki/Dockerfile
+    environment:
+      - LOKI_URL=http://loki:3100
+      - TRANSPORT=SSE
+    depends_on:
+      - loki
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3001"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      default:
+        aliases:
+          - loki-mcp
 
   prompt-server:
     build:
@@ -118,6 +138,8 @@ services:
       slack:
         condition: service_healthy
       github:
+        condition: service_healthy
+      loki-mcp:
         condition: service_healthy
       prompt-server:
         condition: service_healthy

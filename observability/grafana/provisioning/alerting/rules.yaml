@@ -14,14 +14,14 @@ groups:
             relativeTimeRange:
               from: 300
               to: 0
-            datasourceUid: -100
+            datasourceUid: loki
             model:
               datasource:
                 type: loki
-                uid: -100
-              editorMode: builder
+                uid: loki
+              editorMode: code
               expr: sum(count_over_time({service="salesforce", level="error"}[5m]))
-              queryType: range
+              queryType: instant
               refId: A
           - refId: B
             datasourceUid: __expr__
@@ -49,14 +49,14 @@ groups:
             relativeTimeRange:
               from: 300
               to: 0
-            datasourceUid: -100
+            datasourceUid: loki
             model:
               datasource:
                 type: loki
-                uid: -100
-              editorMode: builder
+                uid: loki
+              editorMode: code
               expr: sum(count_over_time({service="promptbuilder", level="error"}[5m]))
-              queryType: range
+              queryType: instant
               refId: A
           - refId: B
             datasourceUid: __expr__

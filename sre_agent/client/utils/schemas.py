@@ -43,9 +43,8 @@ class MCPServer(StrEnum):
 
     SLACK = "slack"
     GITHUB = "github"
-    KUBERNETES = "kubernetes"
+    LOKI = "loki-mcp"
     PROMPT = "prompt-server"
-    SALESFORCE = "salesforce"
 
 
 def get_enabled_servers() -> list["MCPServer"]:
