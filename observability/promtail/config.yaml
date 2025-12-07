@@ -25,23 +25,25 @@ scrape_configs:
           job: app
           __path__: /var/log/app/*.log
 
-  - job_name: demo-app-logs
+
+
+  - job_name: aura-backend-logs
     pipeline_stages:
       - json:
           expressions:
             level: level
             service: service
-            msg: msg
+            msg: message
             error: error
-            latency_ms: latency_ms
-            db_pool_used: db_pool_used
-            file: file
-            line: line
+            method: method
+            path: path
+            status: status
+            duration_ms: duration_ms
       - labels:
           level:
           service:
     static_configs:
       - targets: [localhost]
         labels:
-          job: demo-app
-          __path__: /var/log/demo-app/*.log
+          job: aura-backend
+          __path__: /var/log/aura-backend/*.log

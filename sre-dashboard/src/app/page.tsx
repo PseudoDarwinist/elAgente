@@ -99,6 +99,10 @@ export default function Home() {
                 message = `Error: ${data.message}`;
                 type = 'error';
                 break;
+            case 'topology_check':
+                message = `🔗 Topology: Checking related services: ${(data.related_services as string[])?.join(', ')}`;
+                type = 'process';
+                break;
             default:
                 if (!message) return null;
         }
@@ -125,7 +129,7 @@ export default function Home() {
             try {
                 const event: DiagnosisEvent = JSON.parse(e.data);
                 setEvents(prev => [...prev, event]);
-                
+
                 // Convert to log entry
                 const logEntry = eventToLogEntry(event);
                 if (logEntry) {
@@ -137,7 +141,7 @@ export default function Home() {
                     setIsDiagnosing(false);
                     setIsListening(false);
                     eventSource.close();
-                    
+
                     // Set report if we have a response
                     if (event.data.response) {
                         setReport(event.data.response);
@@ -174,23 +178,23 @@ export default function Home() {
     // Poll for new alert-triggered runs (auto-subscribe to Grafana alerts)
     useEffect(() => {
         let lastSeenRunId: string | null = null;
-        
+
         const pollForAlerts = async () => {
             try {
                 const res = await fetch(`${ORCHESTRATOR_URL}/latest-run`);
                 if (!res.ok) return;
-                
+
                 const data = await res.json();
-                
+
                 // Check if there's a new run we haven't seen
                 if (
-                    data.run_id && 
-                    data.run_id !== lastSeenRunId && 
-                    data.run_id !== runId && 
+                    data.run_id &&
+                    data.run_id !== lastSeenRunId &&
+                    data.run_id !== runId &&
                     !isDiagnosing
                 ) {
                     lastSeenRunId = data.run_id;
-                    
+
                     // Auto-subscribe to the new alert-triggered run
                     setRunId(data.run_id);
                     setServiceName(data.service || '');
@@ -204,7 +208,7 @@ export default function Home() {
                     setReport(null);
                     setEvents([]);
                     setPipelineState(initialPipelineState);
-                    
+
                     subscribeToEvents(data.run_id);
                 }
             } catch {
@@ -213,10 +217,10 @@ export default function Home() {
         };
 
         const interval = setInterval(pollForAlerts, 3000);
-        
+
         // Initial poll
         pollForAlerts();
-        
+
         return () => clearInterval(interval);
     }, [runId, isDiagnosing, subscribeToEvents]);
 
@@ -254,7 +258,7 @@ export default function Home() {
             }
 
             const data = await response.json();
-            
+
             if (data.run_id) {
                 setRunId(data.run_id);
                 subscribeToEvents(data.run_id);
@@ -276,11 +280,11 @@ export default function Home() {
     return (
         <main className="min-h-screen bg-[#e0f2fe] font-sans overflow-x-hidden relative selection:bg-pink-400 selection:text-black">
             {/* Background grid */}
-            <div className="fixed inset-0 opacity-10 pointer-events-none z-0" 
-                 style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+            <div className="fixed inset-0 opacity-10 pointer-events-none z-0"
+                style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
             <div className="relative z-10 max-w-[1400px] mx-auto p-4 md:p-8">
-                
+
                 {/* Header */}
                 <header className="mb-12">
                     <div className="bg-black text-white p-6 border-b-8 border-yellow-400 shadow-[12px_12px_0px_0px_rgba(0,0,0,0.2)] transform -rotate-1 hover:rotate-0 transition-transform duration-300">
@@ -296,7 +300,7 @@ export default function Home() {
                                     <p className="font-mono text-sm text-gray-400 uppercase tracking-widest">Autonomous Incident Response System</p>
                                 </div>
                             </div>
-                            
+
                             <div className="flex items-center gap-4">
                                 {isListening ? (
                                     <div className="flex items-center gap-2 px-4 py-2 bg-[#86efac] border-4 border-black animate-bounce shadow-[4px_4px_0px_0px_#000]">
@@ -314,7 +318,7 @@ export default function Home() {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Marquee Tape */}
                     <div className="bg-yellow-400 border-4 border-black py-2 overflow-hidden mt-6 transform rotate-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                         <div className="animate-marquee whitespace-nowrap font-black text-sm uppercase tracking-widest flex gap-8">

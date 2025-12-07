@@ -17,7 +17,7 @@ from utils.schemas import PromptServerConfig  # type: ignore
 
 mcp = FastMCP("sre-agent-prompt")
 
-mcp.settings.host = "127.0.0.1"  # nosec B104
+mcp.settings.host = "0.0.0.0"  # nosec B104 - Required for Docker container networking
 mcp.settings.port = 3001
 
 

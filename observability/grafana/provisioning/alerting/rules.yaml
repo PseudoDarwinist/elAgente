@@ -1,83 +1,45 @@
 apiVersion: 1
 groups:
   - orgId: 1
-    name: salesforce-errors
-    folder: Alerts
-    interval: 1m
+    name: aura-backend-alerts
+    folder: Aura Alerts
+    interval: 10s
     rules:
-      - uid: salesforce-any-error
-        title: Salesforce Any Error
-        condition: C
-        for: 1m
+      - uid: aura-error-rate-alert
+        title: Aura Backend Error Rate
+        condition: B
         data:
           - refId: A
             relativeTimeRange:
-              from: 300
+              from: 60
               to: 0
             datasourceUid: loki
             model:
-              datasource:
-                type: loki
-                uid: loki
-              editorMode: code
-              expr: sum(count_over_time({service="salesforce", level="error"}[5m]))
+              expr: 'count_over_time({job="aura-backend"} |= `error` [1m])'
               queryType: instant
-              refId: A
           - refId: B
-            datasourceUid: __expr__
-            model:
-              expression: 0
-              refId: B
-              type: math
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              expression: A > 0
-              type: math
-              refId: C
-        annotations:
-          summary: "Errors detected for service=salesforce in last 5m"
-        labels:
-          service: salesforce
-
-      - uid: promptbuilder-any-error
-        title: Promptbuilder Any Error
-        condition: C
-        for: 1m
-        data:
-          - refId: A
             relativeTimeRange:
-              from: 300
+              from: 60
               to: 0
-            datasourceUid: loki
-            model:
-              datasource:
-                type: loki
-                uid: loki
-              editorMode: code
-              expr: sum(count_over_time({service="promptbuilder", level="error"}[5m]))
-              queryType: instant
-              refId: A
-          - refId: B
             datasourceUid: __expr__
             model:
-              expression: 0
-              refId: B
-              type: math
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              expression: A > 0
-              type: math
-              refId: C
-        annotations:
-          summary: "Errors detected for service=promptbuilder in last 5m"
+              type: threshold
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 0
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              expression: A
+        noDataState: OK
+        execErrState: Error
+        for: 10s
         labels:
-          service: promptbuilder
-
-
-
-
-
-
-
+          service: aura-backend
+          severity: critical
+        annotations:
+          summary: "High error rate detected in aura-backend checkout flow"
+          description: "Multiple errors detected in the last minute. Possible database or payment gateway issue."

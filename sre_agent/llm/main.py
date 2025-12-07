@@ -27,12 +27,13 @@ load_dotenv()
 STATE: dict[str, BaseClient] = {}
 
 
-LLM_CLIENT_MAP: dict[Provider, BaseClient] = {
-    Provider.ANTHROPIC: AnthropicClient(),
-    Provider.MOCK: DummyClient(),
-    Provider.OPENAI: OpenAIClient(),
-    Provider.GEMINI: GeminiClient(),
-    Provider.SELF_HOSTED: SelfHostedClient(),
+# Use class types for lazy initialization - only instantiate when needed
+LLM_CLIENT_CLASS_MAP: dict[Provider, type[BaseClient]] = {
+    Provider.ANTHROPIC: AnthropicClient,
+    Provider.MOCK: DummyClient,
+    Provider.OPENAI: OpenAIClient,
+    Provider.GEMINI: GeminiClient,
+    Provider.SELF_HOSTED: SelfHostedClient,
 }
 
 
@@ -42,7 +43,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[Any, Any]:
 
     On start-up the application will establish an LLM function and settings.
     """
-    STATE["client"] = LLM_CLIENT_MAP.get(LLMSettings().provider, DummyClient())
+    settings = LLMSettings()
+    client_class = LLM_CLIENT_CLASS_MAP.get(settings.provider, DummyClient)
+    
+    # Instantiate the client class
+    STATE["client"] = client_class(settings)
 
     if STATE["client"] is None:
         raise ValueError(

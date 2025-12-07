@@ -51,10 +51,13 @@ from utils.schemas import (  # type: ignore
     get_enabled_servers,
 )
 from utils.rag import query_similar, upsert_summary  # type: ignore
+from utils.topology import TopologyManager  # type: ignore
 
 load_dotenv()
 
 PORT = 3001
+AGENT_WORKER_URL = os.getenv("AGENT_WORKER_URL", "").rstrip("/")
+USE_AGENT_WORKER = os.getenv("USE_AGENT_WORKER", "false").lower() in ("1", "true", "yes")
 END_TURN = "end_turn"
 LAST_RUNS: dict[str, float] = {}
 
@@ -196,7 +199,81 @@ class MCPClient:
         self.sessions[service] = ServerSession(tools=tools, session=session)
 
     async def _get_prompt(self, service: str, slack_channel_id: str) -> MessageBlock:
-        """A helper method for retrieving the prompt from the prompt server."""
+        """A helper method for retrieving the prompt from the prompt server.
+        
+        Falls back to inline prompt if prompt-server is not connected.
+        """
+        # Fallback prompt if prompt-server not available
+        if MCPServer.PROMPT not in self.sessions:
+            logger.info("Prompt server not available, using fallback prompt")
+            fallback_prompt = f"""## 🔍 INCIDENT INVESTIGATION: {service}
+
+You are an expert SRE investigating a production incident for the `{service}` service.
+
+### INVESTIGATION WORKFLOW (Follow these steps IN ORDER):
+
+**STEP 1: GATHER LOGS (Do this ONCE)**
+- Call `get_error_logs` with service="{service}" to see recent errors
+- Review the log output carefully for error patterns
+
+**STEP 2: ANALYZE & FORM HYPOTHESIS**
+Based on the logs, identify:
+- Error type (database, network, memory, code bug, etc.)
+- Error message details
+- Affected components
+
+**STEP 3: GENERATE DIAGNOSIS**
+Write your analysis in this exact format:
+
+---
+## 🧠 Chain of Thought
+
+1. **Initial Observation**: [What the error logs showed]
+2. **Hypothesis**: [Your theory about root cause]
+3. **Evidence**: [Log entries that support this]
+4. **Conclusion**: [Clear statement of root cause]
+
+## 📊 Evidence Table
+
+| Evidence | Source | Finding |
+|----------|--------|---------|
+| [Log entry] | Loki | [What it indicates] |
+
+## 🎯 Root Cause
+
+**[Clear, specific statement of the root cause]**
+
+Confidence: [X]%
+
+## 📋 Runbook
+
+### Immediate Mitigation
+1. [First action to stop the problem]
+
+### Fix Root Cause
+2. [Action to fix underlying issue]
+
+### Verify Fix
+3. [How to confirm the fix worked]
+---
+
+**STEP 4: POST TO SLACK (MANDATORY)**
+Call `slack_post_message` with:
+- channel: "{slack_channel_id}"
+- text: Your complete diagnosis from Step 3
+
+**STEP 5: CREATE GITHUB ISSUE (MANDATORY)**
+Call `create_issue` with:
+- title: "[Incident] {service}: [Root cause summary]"
+- body: Your complete diagnosis from Step 3
+
+IMPORTANT: You MUST complete steps 4 and 5 after your analysis. Do not stop early."""
+            return MessageBlock(
+                role="user",
+                content=[TextBlock(type="text", text=fallback_prompt)],
+            )
+        
+        # Use prompt server if available
         prompt: GetPromptResult = await self.sessions[
             MCPServer.PROMPT
         ].session.get_prompt(
@@ -277,16 +354,44 @@ class MCPClient:
                 }
             )
 
+        # Inject service topology context
+        # --------------------------------
+        # This helps the LLM understand service relationships and guides it
+        # to investigate related services when diagnosing issues.
+        topology = TopologyManager()
+        related_services = topology.get_related_services(service)
+        
+        if related_services:
+            topology_context = topology.get_topology_context(service)
+            if run_id:
+                emit_event(run_id, "topology_check", {
+                    "primary_service": service,
+                    "related_services": related_services,
+                    "message": f"Related services: {', '.join(related_services)}"
+                })
+            self.messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": topology_context,
+                        }
+                    ],
+                }
+            )
+            logger.info(f"Injected topology context for {service}: {related_services}")
+        else:
+            logger.info(f"No topology information available for {service}")
+
         available_tools = []
+        configured_tools = _get_client_config().tools
 
         for service, session in self.sessions.items():
-            available_tools.extend(
-                [
-                    tool.model_dump()
-                    for tool in session.tools
-                    if tool.name in _get_client_config().tools
-                ]
-            )
+            for tool in session.tools:
+                # If TOOLS config is empty, use ALL tools; otherwise filter to configured list
+                if not configured_tools or tool.name in configured_tools:
+                    available_tools.append(tool.model_dump())
 
         final_text = []
 
@@ -328,6 +433,7 @@ class MCPClient:
             if run_id:
                 emit_event(run_id, "llm_response", {"message": f"LLM responded in {llm_duration:.2f}s", "duration": llm_duration})
             self.stop_reason = llm_response.stop_reason
+            logger.info(f"LLM stop_reason: {self.stop_reason}, content types: {[c.type for c in llm_response.content]}")
 
             # Track token usage from this response
             if llm_response.usage:
@@ -466,7 +572,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3002"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -483,6 +589,55 @@ async def run_diagnosis_and_post(service: str, alert_context: str | None = None,
     """
     timeout = _get_client_config().query_timeout
     
+    if USE_AGENT_WORKER and AGENT_WORKER_URL:
+        if run_id:
+            emit_event(run_id, "agent_worker_start", {
+                "message": "Using agent-worker (Claude SDK) for diagnosis",
+                "service": service,
+            })
+        logger.info(f"Running diagnosis via agent-worker for service: {service}")
+        try:
+            payload = {
+                "service": service,
+                "alertContext": alert_context,
+                "slackChannelId": _get_client_config().slack_channel_id,
+            }
+            resp = requests.post(
+                f"{AGENT_WORKER_URL}/diagnose",
+                json=payload,
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if not data.get("success"):
+                raise RuntimeError(data.get("error") or "agent-worker returned failure")
+
+            report = data.get("report", "")
+            if run_id:
+                emit_event(run_id, "complete", {
+                    "status": "success",
+                    "message": "Diagnosis completed via agent-worker",
+                    "response": report[:2000],
+                })
+
+            try:
+                upsert_summary(
+                    doc_id=f"{service}-{int(time.time())}",
+                    text=report[:4000],
+                    labels={"service": service},
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.warning(f"Failed to upsert RAG summary: {e}")
+            return
+        except Exception as e:  # noqa: BLE001
+            logger.exception(f"Agent-worker diagnosis failed for {service}: {e}")
+            if run_id:
+                emit_event(run_id, "error", {
+                    "message": f"agent-worker failed: {e}",
+                    "service": service,
+                })
+            # Fall back to legacy loop below
+
     if run_id:
         emit_event(run_id, "connecting_servers", {"message": "Connecting to MCP servers..."})
     
