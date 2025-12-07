@@ -1,25 +1,25 @@
-FROM node:20-alpine
+FROM node:22.12-alpine AS builder
+
+# Copy loki server files from docker context (sre_agent/)
+COPY servers/loki /app
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source files
-COPY . .
-
-# Build TypeScript
+RUN --mount=type=cache,target=/root/.npm npm install
 RUN npm run build
 
-# Expose port
-EXPOSE 3001
+FROM node:22.12-alpine AS release
 
-# Set environment variables
+COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/package-lock.json /app/package-lock.json
+
+ENV NODE_ENV=production
 ENV PORT=3001
 ENV TRANSPORT=SSE
 
-# Run the server
-CMD ["node", "dist/index.js"]
+WORKDIR /app
+
+RUN npm ci --ignore-scripts --omit-dev
+
+ENTRYPOINT ["node", "dist/index.js"]

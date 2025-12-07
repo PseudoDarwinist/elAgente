@@ -21,8 +21,15 @@ load_dotenv()
 
 
 def _validate_fields(self: DataclassInstance) -> None:
+    # Fields that are allowed to be empty (they have valid default behavior)
+    optional_fields = {"tools"}  # Empty TOOLS means "use all discovered tools"
+    
     for config in fields(self):
         attr = getattr(self, config.name)
+        
+        # Skip validation for optional fields
+        if config.name in optional_fields:
+            continue
 
         if not attr:
             msg = f"Environment variable {config.name.upper()} is not set."
