@@ -252,3 +252,6 @@ tmpcharts/
 .release-name/
 
 *values-secrets.yaml
+# Environment files
+.env
+.env.*

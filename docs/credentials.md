@@ -11,7 +11,7 @@ The following credentials must be retrieved prior to running the agent. These cr
 - **SLACK_CHANNEL_ID**: The specific Slack channel ID for the agent's responses.
 
 ### GitHub Configuration
-- **GITHUB_PERSONAL_ACCESS_TOKEN**: A GitHub personal access token with permissions to read relevant files and create issues.
+- **GITHUB_PERSONAL_ACCESS_TOKEN**: A GitHub personal access token with **repo-level read/write** access. Use a classic token with the `repo` scope (covers contents, issues, and pull requests) or a fine-grained token with read/write permissions for **Contents** and **Issues/Pull requests** on the target repository. Without these scopes GitHub will return `Resource not accessible by personal access token` when creating issues or pushing code.
 - **GITHUB_ORGANISATION**: Your GitHub organisation name (e.g., "fuzzylabs").
 - **GITHUB_REPO_NAME**: Your GitHub repository name (e.g., "sre-agent").
 - **PROJECT_ROOT**: The root directory path within your GitHub project where relevant code is located.

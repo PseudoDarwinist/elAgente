@@ -67,7 +67,10 @@ def get_credential_config(platform: str) -> dict[str, dict[str, Any]]:
             "mask_value": False,
         },
         "GITHUB_PERSONAL_ACCESS_TOKEN": {
-            "prompt": "Enter your Github Personal Access Token: ",
+            "prompt": (
+                "Enter your Github Personal Access Token (classic with `repo` scope "
+                "or fine-grained with read/write Contents + Issues/PRs on the target repo): "
+            ),
             "mask_value": True,
         },
         "GITHUB_ORGANISATION": {
