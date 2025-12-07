@@ -19,6 +19,13 @@ mcp = FastMCP("sre-agent-prompt")
 
 mcp.settings.host = "0.0.0.0"  # nosec B104 - Required for Docker container networking
 mcp.settings.port = 3001
+# Allow in-cluster service hostnames to pass host-header validation for SSE
+mcp.settings.transport_security.allowed_hosts.extend(
+    ["prompt-server:*", "prompt-server:3001", "0.0.0.0:*"]
+)
+mcp.settings.transport_security.allowed_origins.extend(
+    ["http://prompt-server:*", "http://prompt-server:3001", "http://0.0.0.0:*"]
+)
 
 
 @lru_cache
