@@ -19,6 +19,12 @@ const PORT = process.env.PORT || 3005;
 const LOKI_MCP_URL = process.env.LOKI_MCP_URL || 'http://loki-mcp:3001/sse';
 const SLACK_MCP_URL = process.env.SLACK_MCP_URL || 'http://slack:3001/sse';
 const GITHUB_MCP_URL = process.env.GITHUB_MCP_URL || 'http://github:3001/sse';
+const TOPOLOGY_MCP_URL = process.env.TOPOLOGY_MCP_URL || 'http://topology-mcp:3001/sse';
+const PROMETHEUS_MCP_URL = process.env.PROMETHEUS_MCP_URL || 'http://prometheus-mcp:3001/sse';
+
+// GitHub repo configuration for issue creation
+const GITHUB_OWNER = process.env.GITHUB_ORGANISATION || 'PseudoDarwinist';
+const GITHUB_REPO = process.env.GITHUB_REPO_NAME || 'elAgente';
 
 interface DiagnoseRequest {
     service: string;
@@ -30,6 +36,7 @@ interface DiagnoseResponse {
     success: boolean;
     report?: string;
     messages?: SDKMessage[];
+    events?: DiagnoseEvent[];
     error?: string;
 }
 
@@ -37,68 +44,101 @@ interface DiagnoseResponse {
  * Generate the SRE investigation prompt
  */
 function buildPrompt(service: string, alertContext: string | undefined, slackChannelId: string | undefined): string {
-    return `## 🔍 INCIDENT INVESTIGATION: ${service}
+    return `## 🔍 TOPOLOGY-AWARE INCIDENT INVESTIGATION: ${service}
 
 You are an expert SRE investigating a production incident for the \`${service}\` service.
+You have access to topology discovery, metrics, and log tools to perform INTELLIGENT context curation.
 
 ${alertContext ? `### Alert Context\n${alertContext}\n` : ''}
 
 ### INVESTIGATION WORKFLOW (Follow these steps IN ORDER):
 
-**STEP 1: GATHER LOGS (Do this ONCE)**
-- Call \`get_error_logs\` with service="${service}" to see recent errors
-- Review the log output carefully for error patterns
+**STEP 1: DISCOVER TOPOLOGY (Do this FIRST)**
+- Call \`get_service_dependencies\` with service="${service}" to find related services
+- Call \`get_impact_radius\` with service="${service}" to understand blast radius
+- Note the upstream and downstream services - you will check ONLY these
 
-**STEP 2: ANALYZE & FORM HYPOTHESIS**
-Based on the logs, identify:
-- Error type (database, network, memory, code bug, etc.)
-- Error message details
-- Affected components
+**STEP 2: CHECK SERVICE HEALTH (For affected services)**
+For each service in the impact radius:
+- Call \`get_service_health\` to check error rates, latency, throughput
+- Call \`check_anomalies\` to detect deviations from baseline
+- This tells you WHY services are failing (CPU, memory, etc.)
 
-**STEP 3: GENERATE DIAGNOSIS**
-Write your analysis in this exact format:
+**STEP 3: GATHER TARGETED LOGS (Only related services)**
+- Call \`get_error_logs\` ONLY for services identified in Step 1
+- Do NOT query logs for unrelated services
+- This is CURATED context, not a fire hose
+
+**STEP 4: BUILD FAULT PROPAGATION CHAIN**
+Based on topology and health data, identify:
+- Origin of the failure (root cause service)
+- Propagation path (how failure cascaded)
+- Affected downstream services
+
+**STEP 5: GENERATE DIAGNOSIS**
+Write your analysis in this exact JSON format (for the dashboard to parse):
+
+\`\`\`json
+{
+  "faultPropagation": {
+    "impactPath": ["service1", "service2", "root-cause-service"],
+    "direction": "downstream",
+    "rootCauseService": "service-name"
+  },
+  "investigation": [
+    {
+      "service": "service-name",
+      "status": "CRITICAL|DEGRADED|HEALTHY",
+      "findings": ["finding 1", "finding 2"],
+      "evidence": ["log entry", "metric value"]
+    }
+  ],
+  "diagnosis": {
+    "rootCause": "Clear statement of root cause",
+    "confidence": 85,
+    "evidence": ["evidence 1", "evidence 2"]
+  },
+  "runbook": [
+    {
+      "step": 1,
+      "action": "Immediate mitigation",
+      "command": "optional shell command"
+    }
+  ]
+}
+\`\`\`
+
+ALSO write a human-readable summary:
 
 ---
-## 🧠 Chain of Thought
+## 🗺️ Fault Propagation Chain
+[Visual representation: service1 → service2 → ROOT CAUSE●]
 
-1. **Initial Observation**: [What the error logs showed]
-2. **Hypothesis**: [Your theory about root cause]
-3. **Evidence**: [Log entries that support this]
-4. **Conclusion**: [Clear statement of root cause]
-
-## 📊 Evidence Table
-
-| Evidence | Source | Finding |
-|----------|--------|---------|
-| [Log entry] | Loki | [What it indicates] |
+## 🔬 Investigation Findings
+| Service | Status | Key Finding |
+|---------|--------|-------------|
+| [name]  | [status] | [finding] |
 
 ## 🎯 Root Cause
-
-**[Clear, specific statement of the root cause]**
-
-Confidence: [X]%
+**[Clear statement]** (Confidence: X%)
 
 ## 📋 Runbook
-
-### Immediate Mitigation
-1. [First action to stop the problem]
-
-### Fix Root Cause
-2. [Action to fix underlying issue]
-
-### Verify Fix
-3. [How to confirm the fix worked]
+1. [Immediate action]
+2. [Fix root cause]
+3. [Verification]
 ---
 
-**STEP 4: POST TO SLACK (MANDATORY)**
+**STEP 6: POST TO SLACK (MANDATORY)**
 ${slackChannelId ? `Call \`slack_post_message\` with channel: "${slackChannelId}" and your diagnosis` : 'Post your diagnosis to the configured Slack channel'}
 
-**STEP 5: CREATE GITHUB ISSUE (MANDATORY)**
-Call \`create_issue\` with:
+**STEP 7: CREATE GITHUB ISSUE (MANDATORY)**
+Call \`create_issue\` with EXACTLY these parameters:
+- owner: "${GITHUB_OWNER}"
+- repo: "${GITHUB_REPO}"
 - title: "[Incident] ${service}: [Root cause summary]"
-- body: Your complete diagnosis from Step 3
+- body: Your complete diagnosis
 
-IMPORTANT: You MUST complete steps 4 and 5 after your analysis. Do not stop early.`;
+IMPORTANT: You MUST complete steps 6 and 7. Do not stop early.`;
 }
 
 /**
@@ -110,6 +150,14 @@ function buildMcpServers(): Record<string, McpServerConfig> {
             type: 'sse',
             url: LOKI_MCP_URL,
         },
+        'topology-mcp': {
+            type: 'sse',
+            url: TOPOLOGY_MCP_URL,
+        },
+        'prometheus-mcp': {
+            type: 'sse',
+            url: PROMETHEUS_MCP_URL,
+        },
         'slack': {
             type: 'sse',
             url: SLACK_MCP_URL,
@@ -119,6 +167,12 @@ function buildMcpServers(): Record<string, McpServerConfig> {
             url: GITHUB_MCP_URL,
         },
     };
+}
+
+interface DiagnoseEvent {
+    event_type: string;
+    timestamp: number;
+    data: Record<string, unknown>;
 }
 
 /**
@@ -133,8 +187,21 @@ app.post('/diagnose', async (req, res) => {
 
     console.log(`[Agent Worker] Starting diagnosis for service: ${service}`);
 
+    const events: DiagnoseEvent[] = [];
+    const emitEvent = (type: string, data: Record<string, unknown>) => {
+        const event: DiagnoseEvent = {
+            event_type: type,
+            timestamp: Date.now(),
+            data
+        };
+        events.push(event);
+        console.log(`[Agent Worker] Event: ${type} - ${JSON.stringify(data).slice(0, 100)}`);
+    };
+
     try {
         const prompt = buildPrompt(service, alertContext, slackChannelId);
+
+        emitEvent('connecting_servers', { message: 'Connecting to MCP servers (Topology, Prometheus, Loki, Slack, GitHub)...' });
 
         // Use Claude Agent SDK with native MCP support
         // query() returns an AsyncGenerator<SDKMessage>
@@ -147,48 +214,101 @@ app.post('/diagnose', async (req, res) => {
             },
         });
 
-        console.log('[Agent Worker] Calling Claude Agent SDK...');
+        console.log('[Agent Worker] Calling Claude Agent SDK with topology-aware diagnosis...');
+        emitEvent('servers_connected', {
+            message: 'Connected to all MCP servers',
+            servers: ['topology-mcp', 'prometheus-mcp', 'loki-mcp', 'slack', 'github']
+        });
 
         const messages: SDKMessage[] = [];
         let finalContent = '';
+        let toolCallCount = 0;
 
         // Iterate over the async generator
         for await (const message of queryGenerator) {
             console.log(`[Agent Worker] Received message type: ${message.type}`);
             messages.push(message);
 
-            // Collect text from assistant messages
+            // Emit events for different message types
             if (message.type === 'assistant') {
+                // Check for tool use blocks
                 for (const block of message.message.content) {
                     if (block.type === 'text') {
                         finalContent += block.text;
+                        // Emit thinking/analysis event for text content
+                        if (block.text.length > 50) {
+                            emitEvent('llm_response', {
+                                message: 'Claude analyzing logs and forming hypothesis...',
+                                preview: block.text.slice(0, 200) + '...'
+                            });
+                        }
+                    } else if (block.type === 'tool_use') {
+                        toolCallCount++;
+                        emitEvent('tool_call', {
+                            tool: block.name,
+                            args: block.input,
+                            message: `Calling tool: ${block.name}`
+                        });
+                    }
+                }
+            }
+
+            // Handle tool results
+            if (message.type === 'user') {
+                for (const block of (message as { message: { content: Array<{ type: string; content?: string; tool_use_id?: string }> } }).message.content) {
+                    if (block.type === 'tool_result') {
+                        const preview = typeof block.content === 'string' ? block.content.slice(0, 2000) : '';
+                        emitEvent('tool_result', {
+                            tool_use_id: block.tool_use_id,
+                            message: `Tool completed`,
+                            preview: preview + (preview.length >= 2000 ? '...' : ''),
+                            is_error: false
+                        });
                     }
                 }
             }
 
             // Handle result message
             if (message.type === 'result') {
-                console.log(`[Agent Worker] Query completed with subtype: ${message.subtype}`);
+                console.log(`[Agent Worker] Query completed with subtype: ${(message as SDKResultMessage).subtype}`);
+                emitEvent('analysis_complete', {
+                    message: 'Analysis complete, posting to Slack and creating GitHub issue...',
+                    tool_calls: toolCallCount
+                });
             }
         }
 
         console.log('[Agent Worker] Diagnosis complete');
 
+        emitEvent('complete', {
+            status: 'success',
+            message: 'Diagnosis completed successfully',
+            response: finalContent.slice(0, 10000)
+        });
+
         const response: DiagnoseResponse = {
             success: true,
             report: finalContent,
             messages,
+            events, // Include events for dashboard
         };
 
         return res.json(response);
     } catch (error) {
         console.error('[Agent Worker] Error during diagnosis:', error);
+
+        emitEvent('error', {
+            message: error instanceof Error ? error.message : 'Unknown error'
+        });
+
         return res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
+            events,
         });
     }
 });
+
 
 /**
  * Health check endpoint
@@ -282,7 +402,9 @@ app.post('/generate', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`[Agent Worker] Claude Agent SDK worker listening on port ${PORT}`);
-    console.log(`[Agent Worker] MCP Servers:`);
+    console.log(`[Agent Worker] MCP Servers (Topology-Aware):`);
+    console.log(`  - Topology: ${TOPOLOGY_MCP_URL}`);
+    console.log(`  - Prometheus: ${PROMETHEUS_MCP_URL}`);
     console.log(`  - Loki: ${LOKI_MCP_URL}`);
     console.log(`  - Slack: ${SLACK_MCP_URL}`);
     console.log(`  - GitHub: ${GITHUB_MCP_URL}`);

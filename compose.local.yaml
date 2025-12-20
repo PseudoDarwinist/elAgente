@@ -1,4 +1,40 @@
 services:
+  # Tempo - Distributed tracing for topology discovery
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    user: "0"  # Run as root to avoid permission issues
+    ports:
+      - "3200:3200"   # Tempo API (query traces, service graph)
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo_data:/tmp/tempo
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3200/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Prometheus - Metrics for service health monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --web.enable-remote-write-receiver
+      - --enable-feature=exemplar-storage
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   loki:
     image: grafana/loki:2.9.8
     command: ["-config.file=/etc/loki/local-config.yaml"]
@@ -34,6 +70,9 @@ services:
       - ./observability/promtail/config.yaml:/etc/promtail/config.yaml:ro
       - ./logs/app:/var/log/app:ro
       - ./aura-quiet-living/backend/logs:/var/log/aura-backend:ro
+      - ./services/postgres-mock/logs:/var/log/postgres-mock:ro
+      - ./services/redis-mock/logs:/var/log/redis-mock:ro
+      - ./services/stripe-mock/logs:/var/log/stripe-mock:ro
     depends_on:
       - loki
   slack:
@@ -87,6 +126,52 @@ services:
       default:
         aliases:
           - loki-mcp
+
+  # Topology MCP - queries Tempo for service dependencies
+  topology-mcp:
+    build:
+      context: sre_agent
+      dockerfile: servers/topology-server/Dockerfile
+    ports:
+      - "3104:3001"
+    environment:
+      - TEMPO_URL=http://tempo:3200
+      - TRANSPORT=SSE
+    depends_on:
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3001"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      default:
+        aliases:
+          - topology-mcp
+
+  # Prometheus MCP - queries Prometheus for service health metrics
+  prometheus-mcp:
+    build:
+      context: sre_agent
+      dockerfile: servers/prometheus-server/Dockerfile
+    ports:
+      - "3105:3001"
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+      - TRANSPORT=SSE
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3001"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      default:
+        aliases:
+          - prometheus-mcp
 
   prompt-server:
     build:
@@ -180,6 +265,8 @@ services:
     environment:
       - PORT=3005
       - LOKI_MCP_URL=http://loki-mcp:3001/sse
+      - TOPOLOGY_MCP_URL=http://topology-mcp:3001/sse
+      - PROMETHEUS_MCP_URL=http://prometheus-mcp:3001/sse
       - SLACK_MCP_URL=http://slack:3001/sse
       - GITHUB_MCP_URL=http://github:3001/sse
     volumes:
@@ -192,8 +279,78 @@ services:
         condition: service_healthy
       loki-mcp:
         condition: service_healthy
+      topology-mcp:
+        condition: service_healthy
+      prometheus-mcp:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock Postgres Database Service
+  postgres-mock:
+    build:
+      context: services/postgres-mock
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./services/postgres-mock/logs:/app/logs
+    environment:
+      - OTEL_SERVICE_NAME=postgres-mock
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - PORT=5432
+    depends_on:
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5432/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock Redis Cache Service
+  redis-mock:
+    build:
+      context: services/redis-mock
+      dockerfile: Dockerfile
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./services/redis-mock/logs:/app/logs
+    environment:
+      - OTEL_SERVICE_NAME=redis-mock
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - PORT=6379
+    depends_on:
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6379/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Mock Stripe Payment API Service
+  stripe-mock:
+    build:
+      context: services/stripe-mock
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./services/stripe-mock/logs:/app/logs
+    environment:
+      - OTEL_SERVICE_NAME=stripe-mock
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - PORT=8081
+    depends_on:
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -206,6 +363,22 @@ services:
       - "4000:4000"
     volumes:
       - ./aura-quiet-living/backend/logs:/app/logs
+    environment:
+      - OTEL_SERVICE_NAME=aura-backend
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - POSTGRES_URL=http://postgres-mock:5432
+      - REDIS_URL=http://redis-mock:6379
+      - STRIPE_URL=http://stripe-mock:8081
+    depends_on:
+      tempo:
+        condition: service_healthy
+      postgres-mock:
+        condition: service_healthy
+      redis-mock:
+        condition: service_healthy
+      stripe-mock:
+        condition: service_healthy
+
 
   aura-frontend:
     build:
@@ -219,5 +392,6 @@ services:
 volumes:
   qdrant_storage:
   loki_data:
-
+  tempo_data:
+  prometheus_data:
 

@@ -1,0 +1,3085 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Agénte - SRE Agent | Semi-Finals Presentation</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff88;
+            --neon-green-dark: #00cc6a;
+            --dark-bg: #0a0a0f;
+            --dark-card: #12121a;
+            --dark-card-lighter: #1a1a25;
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --danger: #ff4444;
+            --warning: #ffaa00;
+            --success: #00ff88;
+            --purple: #667eea;
+            --purple-dark: #764ba2;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* ============================================
+           PRODUCTION GRADE ANIMATION SYSTEM
+           ============================================ */
+
+        /* Cinematic Slide Transitions */
+        .slides-container {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: var(--dark-bg);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(0, 255, 136, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Ambient floating particles effect */
+        .slide.active::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background-image:
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(102, 126, 234, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            animation: ambientPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes ambientPulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Stagger animation for child elements */
+        .slide.active .stagger-1 {
+            animation: slideUp 0.5s ease forwards 0.1s;
+            opacity: 0;
+        }
+
+        .slide.active .stagger-2 {
+            animation: slideUp 0.5s ease forwards 0.2s;
+            opacity: 0;
+        }
+
+        .slide.active .stagger-3 {
+            animation: slideUp 0.5s ease forwards 0.3s;
+            opacity: 0;
+        }
+
+        .slide.active .stagger-4 {
+            animation: slideUp 0.5s ease forwards 0.4s;
+            opacity: 0;
+        }
+
+        .slide.active .stagger-5 {
+            animation: slideUp 0.5s ease forwards 0.5s;
+            opacity: 0;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           TERMINAL TYPING EFFECT (Slide 3)
+           ============================================ */
+        .terminal-container {
+            background: linear-gradient(180deg, #1a1a2e 0%, #0d0d14 100%);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 900px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-header {
+            background: linear-gradient(180deg, #2d2d3a 0%, #1f1f2a 100%);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red {
+            background: #ff5f56;
+        }
+
+        .terminal-dot.yellow {
+            background: #ffbd2e;
+        }
+
+        .terminal-dot.green {
+            background: #27c93f;
+        }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .terminal-body {
+            padding: 24px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+            font-size: 0.9rem;
+            line-height: 2;
+        }
+
+        .terminal-line {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+
+        .slide.active .terminal-line {
+            animation: typeLine 0.3s ease forwards;
+        }
+
+        .slide.active .terminal-line:nth-child(1) {
+            animation-delay: 0.3s;
+        }
+
+        .slide.active .terminal-line:nth-child(2) {
+            animation-delay: 0.8s;
+        }
+
+        .slide.active .terminal-line:nth-child(3) {
+            animation-delay: 1.3s;
+        }
+
+        .slide.active .terminal-line:nth-child(4) {
+            animation-delay: 1.8s;
+        }
+
+        @keyframes typeLine {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .terminal-time {
+            color: #ffaa00;
+        }
+
+        .terminal-error {
+            color: #ff4444;
+            font-weight: 600;
+        }
+
+        .terminal-critical {
+            color: #ff4444;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+            animation: criticalPulse 1s ease-in-out infinite;
+        }
+
+        .terminal-service {
+            color: #8888aa;
+        }
+
+        .terminal-message {
+            color: #cccccc;
+        }
+
+        @keyframes criticalPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background: var(--neon-green);
+            margin-left: 4px;
+            animation: blink 1s step-end infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* Money counter in corner */
+        .money-counter {
+            position: absolute;
+            top: 120px;
+            right: 80px;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 15px 25px;
+            text-align: center;
+        }
+
+        .money-counter-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .money-counter-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        /* ============================================
+           COUNTER ANIMATION (Stats Cards)
+           ============================================ */
+        .stat-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(0, 255, 136, 0.4);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 255, 136, 0.15);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            margin-bottom: 8px;
+            text-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .stat-number[data-danger] {
+            color: var(--danger);
+            text-shadow: 0 0 30px rgba(255, 68, 68, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 500;
+        }
+
+        /* ============================================
+           TIMELINE SEQUENTIAL ANIMATION (Slide 5)
+           ============================================ */
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 18px 24px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            font-size: 1.05rem;
+            border-left: 3px solid transparent;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+
+        .slide.active .timeline-item {
+            animation: timelineSlide 0.5s ease forwards;
+        }
+
+        .slide.active .timeline .timeline-item:nth-child(1) {
+            animation-delay: 0.2s;
+        }
+
+        .slide.active .timeline .timeline-item:nth-child(2) {
+            animation-delay: 0.4s;
+        }
+
+        .slide.active .timeline .timeline-item:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+
+        .slide.active .timeline .timeline-item:nth-child(4) {
+            animation-delay: 0.8s;
+        }
+
+        .slide.active .timeline .timeline-item:nth-child(5) {
+            animation-delay: 1.0s;
+        }
+
+        @keyframes timelineSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .timeline-item:hover {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: var(--danger);
+            transform: translateX(5px);
+        }
+
+        .timeline-item .time {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            min-width: 80px;
+            font-size: 0.95rem;
+        }
+
+        /* ============================================
+           FLOW DIAGRAM ANIMATION
+           ============================================ */
+        .flow-step {
+            background: var(--dark-card);
+            padding: 18px 28px;
+            border-radius: 12px;
+            border: 2px solid var(--neon-green);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .flow-step:hover {
+            background: rgba(0, 255, 136, 0.1);
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .flow-arrow {
+            font-size: 1.8rem;
+            color: var(--neon-green);
+            animation: arrowPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes arrowPulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: translateX(0);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateX(3px);
+            }
+        }
+
+        /* ============================================
+           GRID CARDS WITH REVEAL
+           ============================================ */
+        .grid-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: left;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .grid-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-green), var(--purple));
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .grid-card:hover {
+            border-color: rgba(0, 255, 136, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .grid-card:hover::after {
+            transform: scaleX(1);
+        }
+
+        /* Hover popup for diagram preview */
+        .grid-card.has-hover-popup {
+            cursor: pointer;
+        }
+
+        .grid-card .hover-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .grid-card:hover .hover-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .hover-popup img {
+            width: 600px;
+            max-width: 80vw;
+            height: auto;
+            border-radius: 16px;
+            border: 3px solid rgba(0, 255, 136, 0.6);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.9), 0 0 50px rgba(0, 255, 136, 0.3);
+            background: var(--dark-bg);
+        }
+
+        .hover-popup-overlay {
+            display: none;
+        }
+
+        .slide.active .content-grid .grid-card:nth-child(1) {
+            animation: cardReveal 0.5s ease forwards 0.1s;
+            opacity: 0;
+        }
+
+        .slide.active .content-grid .grid-card:nth-child(2) {
+            animation: cardReveal 0.5s ease forwards 0.2s;
+            opacity: 0;
+        }
+
+        .slide.active .content-grid .grid-card:nth-child(3) {
+            animation: cardReveal 0.5s ease forwards 0.3s;
+            opacity: 0;
+        }
+
+        .slide.active .content-grid .grid-card:nth-child(4) {
+            animation: cardReveal 0.5s ease forwards 0.4s;
+            opacity: 0;
+        }
+
+        @keyframes cardReveal {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ============================================
+           QUOTE BOX ENHANCEMENT
+           ============================================ */
+        .quote-box {
+            background: linear-gradient(135deg, var(--dark-card) 0%, rgba(18, 18, 26, 0.8) 100%);
+            border-left: 4px solid var(--neon-green);
+            padding: 35px 40px;
+            border-radius: 0 16px 16px 0;
+            margin: 30px 0;
+            max-width: 1000px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .quote-box::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 4rem;
+            color: var(--neon-green);
+            opacity: 0.2;
+            font-family: Georgia, serif;
+        }
+
+        .quote-box p {
+            font-size: 1.5rem;
+            font-style: italic;
+            text-align: left;
+            color: var(--text-primary);
+            line-height: 1.8;
+        }
+
+        .quote-source {
+            font-size: 0.95rem;
+            color: var(--neon-green);
+            margin-top: 20px;
+            text-align: right;
+            font-style: normal;
+            font-weight: 500;
+        }
+
+        /* ============================================
+           PHASE BADGE ENHANCEMENT
+           ============================================ */
+        .phase-badge {
+            position: absolute;
+            top: 35px;
+            left: 50px;
+            background: linear-gradient(135deg, var(--neon-green) 0%, var(--neon-green-dark) 100%);
+            color: var(--dark-bg);
+            padding: 10px 24px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        /* ============================================
+           NAVIGATION ENHANCEMENT
+           ============================================ */
+        .nav-controls {
+            position: fixed;
+            bottom: 35px;
+            right: 50px;
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 255, 136, 0.4);
+            background: rgba(0, 255, 136, 0.05);
+            color: var(--neon-green);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover {
+            background: var(--neon-green);
+            color: var(--dark-bg);
+            border-color: var(--neon-green);
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.5);
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 42px;
+            left: 50px;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .slide-counter span {
+            color: var(--neon-green);
+            font-weight: 700;
+        }
+
+        /* ============================================
+           PROGRESS BAR
+           ============================================ */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-green), var(--purple));
+            transition: width 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-shadow: 0 0 30px var(--neon-green), 0 0 60px rgba(0, 255, 136, 0.3);
+            color: var(--neon-green);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            max-width: 900px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 1.6rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        /* Logo styling - VIDEO */
+        .logo-container {
+            width: 350px;
+            height: 350px;
+            margin-bottom: 40px;
+            position: relative;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        .logo-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: drop-shadow(0 0 30px var(--neon-green));
+        }
+
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 30px var(--neon-green));
+        }
+
+        /* Phase badge */
+        .phase-badge {
+            position: absolute;
+            top: 40px;
+            left: 60px;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-green-dark));
+            color: var(--dark-bg);
+            padding: 12px 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 30px;
+        }
+
+        /* Split Screen */
+        .split-container {
+            display: flex;
+            width: 100%;
+            height: 80%;
+            gap: 40px;
+        }
+
+        .split-left,
+        .split-right {
+            flex: 1;
+            padding: 40px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .split-left {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(255, 68, 68, 0.05));
+            border: 2px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .split-right {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 136, 0.05));
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .split-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .split-left .split-header {
+            color: var(--danger);
+        }
+
+        .split-right .split-header {
+            color: var(--success);
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+
+        .timeline-item .time {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            min-width: 80px;
+        }
+
+        .split-left .timeline-item .time {
+            color: var(--danger);
+        }
+
+        .split-right .timeline-item .time {
+            color: var(--success);
+        }
+
+        /* Quote box */
+        .quote-box {
+            background: var(--dark-card);
+            border-left: 4px solid var(--neon-green);
+            padding: 40px;
+            border-radius: 0 20px 20px 0;
+            margin: 30px 0;
+            max-width: 1000px;
+        }
+
+        .quote-box p {
+            font-size: 1.6rem;
+            font-style: italic;
+            text-align: left;
+            color: var(--text-primary);
+        }
+
+        .quote-source {
+            font-size: 1rem;
+            color: var(--neon-green);
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .stat-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--neon-green);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 255, 136, 0.2);
+        }
+
+        .stat-number {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Insight Box */
+        .insight-box {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 136, 0.05));
+            border: 2px solid var(--neon-green);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .insight-box h3 {
+            color: var(--neon-green);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .insight-box p {
+            font-size: 1.8rem;
+            color: var(--text-primary);
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 40px;
+            right: 60px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-green);
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--neon-green);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            background: var(--neon-green);
+            color: var(--dark-bg);
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 50px;
+            left: 60px;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .slide-counter span {
+            color: var(--neon-green);
+            font-weight: 700;
+        }
+
+        /* Feature List */
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 1.4rem;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-green-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #0d0d12;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            font-family: 'Fira Code', 'Monaco', monospace;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            text-align: left;
+            overflow: hidden;
+            max-width: 800px;
+        }
+
+        .code-block .error {
+            color: var(--danger);
+        }
+
+        .code-block .success {
+            color: var(--success);
+        }
+
+        .code-block .time {
+            color: var(--warning);
+        }
+
+        /* Flow diagram */
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .flow-step {
+            background: var(--dark-card);
+            padding: 20px 30px;
+            border-radius: 15px;
+            border: 2px solid var(--neon-green);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .flow-arrow {
+            font-size: 2rem;
+            color: var(--neon-green);
+        }
+
+        /* Hero section */
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Grid layout for content */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .grid-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: left;
+        }
+
+        .grid-card h4 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-green);
+            font-size: 1rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .grid-card ul {
+            list-style: none;
+        }
+
+        .grid-card li {
+            padding: 4px 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .grid-card li::before {
+            content: '▸';
+            color: var(--neon-green);
+        }
+
+        /* Highlight text */
+        .highlight {
+            color: var(--neon-green);
+            font-weight: 600;
+        }
+
+        /* Call to action */
+        .cta-box {
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-green-dark));
+            color: var(--dark-bg);
+            padding: 30px 60px;
+            border-radius: 50px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 40px;
+            box-shadow: 0 10px 40px rgba(0, 255, 136, 0.4);
+        }
+
+        /* ============================================
+           ZIGZAG TRANSFORMATION SLIDE STYLES
+           ============================================ */
+        .zigzag-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .zigzag-row {
+            display: flex;
+            align-items: stretch;
+            min-height: 70px;
+        }
+
+        .zigzag-row.left {
+            flex-direction: row;
+        }
+
+        .zigzag-row.right {
+            flex-direction: row-reverse;
+        }
+
+        .zigzag-card {
+            flex: 1;
+            padding: 15px 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .zigzag-card.before {
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.15), rgba(255, 68, 68, 0.05));
+            border: 1px solid rgba(255, 68, 68, 0.3);
+        }
+
+        .zigzag-card.after {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 255, 136, 0.05));
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .zigzag-row.left .zigzag-card.before {
+            border-radius: 20px 0 0 0;
+        }
+
+        .zigzag-row.left .zigzag-card.after {
+            border-radius: 0 20px 0 0;
+        }
+
+        .zigzag-row.right .zigzag-card.before {
+            border-radius: 0 0 0 20px;
+        }
+
+        .zigzag-row.right .zigzag-card.after {
+            border-radius: 0 0 20px 0;
+        }
+
+        .zigzag-row:nth-child(odd) .zigzag-card.before {
+            border-radius: 20px 0 0 0;
+        }
+
+        .zigzag-row:nth-child(odd) .zigzag-card.after {
+            border-radius: 0 20px 0 0;
+        }
+
+        .zigzag-row:nth-child(even) .zigzag-card.before {
+            border-radius: 0 0 0 20px;
+        }
+
+        .zigzag-row:nth-child(even) .zigzag-card.after {
+            border-radius: 0 0 20px 0;
+        }
+
+        .zigzag-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .zigzag-card.before .zigzag-title {
+            color: var(--text-primary);
+        }
+
+        .zigzag-card.after .zigzag-title {
+            color: var(--text-primary);
+        }
+
+        .zigzag-before-text {
+            color: var(--danger);
+            font-size: 1rem;
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+
+        .zigzag-arrow {
+            color: var(--text-secondary);
+            margin: 0 10px;
+        }
+
+        .zigzag-after-text {
+            color: var(--success);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .zigzag-content {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .zigzag-spacer {
+            flex: 1;
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="slides-container">
+
+        <!-- SLIDE 1: Title -->
+        <div class="slide active" id="slide-1">
+            <div class="hero-content">
+                <div class="logo-container">
+                    <video autoplay loop muted playsinline>
+                        <source src="animated-logo.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <h1>El Agénte</h1>
+                <p class="subtitle">TTH Domain Intelligent, AI-powered Agent that investigates production incidents
+                    autonomously, before your engineer even finishes waking up.
+                </p>
+                <div class="flow-diagram">
+                    <div class="flow-step">Context</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">Challenge</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">Response</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">Result</div>
+                </div>
+                <p style="margin-top: 40px; font-size: 1.1rem; color: var(--text-secondary);">
+                    Finals Presentation | December 18, 2025
+                </p>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: The Edge - Playbook Validation -->
+        <div class="slide" id="slide-2">
+            <span class="phase-badge">⚡ The WHY</span>
+            <h2 style="text-transform: none;">A DAY ZERO PROBLEM FOR IT OPS</h2>
+            <div class="insight-box" style="margin-bottom: 15px; padding: 15px;">
+                <h3 style="text-transform: none;">📋 A Pattern in the Playbook</h3>
+                <p>Every single example was about<br>
+                    <span style="color: var(--neon-green); font-weight: 700; font-size: 1.6rem;">Anomaly Detection &
+                        Incident Remediation</span>
+                </p>
+            </div>
+            <!-- Scattered newspaper clippings - movie style -->
+            <div style="position: relative; width: 1200px; height: 380px; margin: 15px auto;">
+                <!-- Clipping 1 - back left -->
+                <div
+                    style="position: absolute; left: 0; top: 30px; width: 280px; background: #fff; border-radius: 8px; padding: 6px; transform: rotate(-8deg); box-shadow: 0 15px 40px rgba(0,0,0,0.7); z-index: 1;">
+                    <img src="example1.png" alt="Example 1" style="width: 100%; border-radius: 4px; display: block;">
+                </div>
+                <!-- Clipping 2 - overlaps 1 -->
+                <div
+                    style="position: absolute; left: 200px; top: 0; width: 280px; background: #fff; border-radius: 8px; padding: 6px; transform: rotate(5deg); box-shadow: 0 15px 40px rgba(0,0,0,0.7); z-index: 2;">
+                    <img src="example2.png" alt="Example 2" style="width: 100%; border-radius: 4px; display: block;">
+                </div>
+                <!-- Clipping 3 - center -->
+                <div
+                    style="position: absolute; left: 400px; top: 50px; width: 280px; background: #fff; border-radius: 8px; padding: 6px; transform: rotate(-3deg); box-shadow: 0 15px 40px rgba(0,0,0,0.7); z-index: 3;">
+                    <img src="example3.png" alt="Example 3" style="width: 100%; border-radius: 4px; display: block;">
+                </div>
+                <!-- Clipping 4 -->
+                <div
+                    style="position: absolute; left: 620px; top: 10px; width: 280px; background: #fff; border-radius: 8px; padding: 6px; transform: rotate(4deg); box-shadow: 0 20px 50px rgba(0,0,0,0.8); z-index: 4;">
+                    <img src="example4.png" alt="Example 4" style="width: 100%; border-radius: 4px; display: block;">
+                </div>
+                <!-- Clipping 5 - Tweet Proof (prominent, front right) -->
+                <div
+                    style="position: absolute; right: 0; top: 20px; width: 320px; background: #15202b; border-radius: 12px; padding: 0; transform: rotate(3deg); box-shadow: 0 25px 60px rgba(0,0,0,0.9), 0 0 30px rgba(0, 255, 136, 0.3); z-index: 5; border: 2px solid rgba(0, 255, 136, 0.4);">
+                    <img src="tweet-proof.jpg" alt="Industry Validation Tweet"
+                        style="width: 100%; border-radius: 10px; display: block;">
+                </div>
+            </div>
+            <p style="margin-top: 15px; font-size: 1.2rem; color: var(--neon-green);">Automating Incident Management is
+                the <strong>highest-value</strong> workload for IT Operations</p>
+        </div>
+
+        <!-- SLIDE 3: Story Time -->
+        <div class="slide" id="slide-3">
+            <h2>Story Time</h2>
+            <div style="display: flex; justify-content: center; align-items: center; flex: 1; width: 100%;">
+                <video autoplay loop muted playsinline
+                    style="height: 60vh; max-width: 90vw; object-fit: contain; border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);">
+                    <source src="Storytime.mp4" type="video/mp4">
+                </video>
+            </div>
+            <a href="http://localhost:8080/" target="_blank"
+                style="margin-top: 15px; color: var(--purple); font-size: 1.9rem; text-decoration: underline;">
+                skyward.com
+            </a>
+        </div>
+
+        <!-- SLIDE 4: Context - The 2 AM Reality -->
+        <div class="slide" id="slide-4" style="padding: 0; overflow: hidden;">
+            <!-- Fullscreen Chaos Video Background (plays once) -->
+            <video autoplay muted playsinline
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;">
+                <source src="chaos.mp4" type="video/mp4">
+            </video>
+
+            <!-- Dark overlay for text readability -->
+            <div
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 2;">
+            </div>
+
+            <!-- Small time text - top left -->
+            <div style="position: absolute; top: 40px; left: 50px; z-index: 10;">
+                <p style="font-size: 1.2rem; color: rgba(255,255,255,0.9); font-weight: 500;">It's <span
+                        style="color: var(--neon-green); font-weight: 700;">2:47 AM</span> in Bengaluru</p>
+            </div>
+        </div>
+
+
+
+
+
+        <!-- SLIDE 5: Challenge - The Pain -->
+        <!-- SLIDE 5: The Human Cost (Merged) -->
+        <div class="slide" id="slide-5">
+            <span class="phase-badge">⚠️ Challenge</span>
+            <h2>The Human Cost of Incident Response</h2>
+
+            <div class="merged-split-container">
+                <!-- Left: Traditional Timeline -->
+                <div class="merged-left-box">
+                    <div class="merged-box-header">
+                        <span>⏱️</span> Traditional Timeline
+                    </div>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <span class="time">T+0</span>
+                            <span>Alert fires, engineer is asleep 😴</span>
+                        </div>
+                        <div class="timeline-item">
+                            <span class="time">T+22m</span>
+                            <span>Finally able to think clearly 🧠</span>
+                        </div>
+                        <div class="timeline-item">
+                            <span class="time">T+45m</span>
+                            <span>Found the right dashboard 🔍</span>
+                        </div>
+                        <div class="timeline-item">
+                            <span class="time">T+90m</span>
+                            <span>Correlating logs and metrics 📊</span>
+                        </div>
+                        <div class="timeline-item">
+                            <span class="time">T+150m</span>
+                            <span>Root cause identified & fixed ✅</span>
+                        </div>
+                    </div>
+                    <p style="margin-top: 15px; color: var(--danger); font-size: 1.1rem; text-align: left;">
+                        Total: 2.5 hours | <strong>₹23.25 Cr lost</strong>
+                    </p>
+                </div>
+
+                <!-- Right: The 22 Minutes Syndrome -->
+                <div class="merged-right-box">
+                    <div class="merged-box-header">
+                        <span>🧠</span> The 22 Minutes Syndrome
+                    </div>
+                    <div class="syndrome-quote">
+                        "It takes on average <span class="highlight">22 minutes</span> to move from sleep to a cognitive
+                        state where you're actually productive."
+                        <div class="quote-source-small">— IBM Research on Agentic AI</div>
+                    </div>
+                    <div class="syndrome-stats">
+                        <div class="syndrome-stat-card">
+                            <div class="syndrome-stat-number">22</div>
+                            <div class="syndrome-stat-label">Minutes to Wake Up</div>
+                        </div>
+                        <div class="syndrome-stat-card danger">
+                            <div class="syndrome-stat-number">₹34L</div>
+                            <div class="syndrome-stat-label">Lost Before Brain Works</div>
+                        </div>
+                        <div class="syndrome-stat-card">
+                            <div class="syndrome-stat-number">4+</div>
+                            <div class="syndrome-stat-label">Hours Avg MTTR</div>
+                        </div>
+                        <div class="syndrome-stat-card">
+                            <div class="syndrome-stat-number">12+</div>
+                            <div class="syndrome-stat-label">Tools to Navigate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .merged-split-container {
+                    display: flex;
+                    gap: 30px;
+                    max-width: 1400px;
+                    width: 100%;
+                    margin-top: 20px;
+                }
+
+                .merged-left-box,
+                .merged-right-box {
+                    flex: 1;
+                    background: var(--dark-card);
+                    border: 1px solid rgba(0, 255, 136, 0.2);
+                    border-radius: 16px;
+                    padding: 24px;
+                }
+
+                .merged-box-header {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: var(--neon-green);
+                    margin-bottom: 20px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding-bottom: 12px;
+                    border-bottom: 1px solid rgba(0, 255, 136, 0.15);
+                }
+
+                .syndrome-quote {
+                    font-size: 1rem;
+                    font-style: italic;
+                    color: var(--text-secondary);
+                    line-height: 1.6;
+                    margin-bottom: 20px;
+                    padding: 12px;
+                    background: rgba(0, 0, 0, 0.3);
+                    border-radius: 8px;
+                    border-left: 3px solid var(--neon-green);
+                }
+
+                .quote-source-small {
+                    font-size: 0.8rem;
+                    color: var(--neon-green);
+                    margin-top: 8px;
+                    font-style: normal;
+                }
+
+                .syndrome-stats {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .syndrome-stat-card {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    background: rgba(0, 255, 136, 0.05);
+                    border: 1px solid rgba(0, 255, 136, 0.15);
+                    border-radius: 10px;
+                    padding: 14px 18px;
+                    transition: all 0.3s ease;
+                }
+
+                .syndrome-stat-card:hover {
+                    background: rgba(0, 255, 136, 0.1);
+                    border-color: rgba(0, 255, 136, 0.3);
+                    transform: translateX(5px);
+                }
+
+                .syndrome-stat-card.danger {
+                    background: rgba(255, 68, 68, 0.05);
+                    border-color: rgba(255, 68, 68, 0.2);
+                }
+
+                .syndrome-stat-card.danger:hover {
+                    background: rgba(255, 68, 68, 0.1);
+                    border-color: rgba(255, 68, 68, 0.4);
+                }
+
+                .syndrome-stat-card.danger .syndrome-stat-number {
+                    color: var(--danger);
+                }
+
+                .syndrome-stat-number {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.6rem;
+                    font-weight: 700;
+                    color: var(--neon-green);
+                }
+
+                .syndrome-stat-label {
+                    font-size: 0.85rem;
+                    color: var(--text-secondary);
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+            </style>
+        </div>
+        <!-- SLIDE 6: The Economics of Autonomy -->
+        <div class="slide" id="slide-6" style="padding: 40px 60px;">
+            <span class="phase-badge">💹 Economics</span>
+            <h2 style="font-size: 1.8rem; margin-top: 20px; margin-bottom: 25px; text-align: center; width: 100%;">The
+                <span style="position: relative; display: inline-block; padding: 2px 8px;">
+                    <span style="position: relative; z-index: 2;">Unit Economics</span>
+                    <svg style="position: absolute; top: -3px; left: -3px; width: calc(100% + 6px); height: calc(100% + 6px); z-index: 1; pointer-events: none;"
+                        viewBox="0 0 200 50" preserveAspectRatio="none">
+                        <path
+                            d="M 10 25 C 12 10, 45 3, 100 4 C 155 3, 188 10, 190 25 C 192 40, 158 47, 100 46 C 42 47, 8 40, 10 25"
+                            fill="none" stroke="#b33" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            style="stroke-dasharray: 500; stroke-dashoffset: 500;">
+                            <animate attributeName="stroke-dashoffset" from="500" to="0" dur="0.8s" fill="freeze"
+                                begin="0.3s" calcMode="spline" keySplines="0.4 0 0.2 1" />
+                        </path>
+                    </svg>
+                </span> of Autonomy
+            </h2>
+
+            <style>
+                .math-grid {
+                    display: flex;
+                    gap: 30px;
+                    width: 100%;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                }
+
+                .math-card {
+                    background: var(--dark-card);
+                    border: 1px solid rgba(0, 255, 136, 0.2);
+                    border-radius: 16px;
+                    padding: 24px;
+                    flex: 1;
+                }
+
+                .math-card h4 {
+                    font-size: 1rem;
+                    color: var(--neon-green);
+                    margin-bottom: 16px;
+                    font-weight: 600;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .math-section {
+                    margin-bottom: 16px;
+                }
+
+                .math-section-title {
+                    font-size: 0.75rem;
+                    color: var(--purple);
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    margin-bottom: 8px;
+                    font-weight: 600;
+                }
+
+                .math-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 6px 0;
+                    font-size: 0.8rem;
+                    color: var(--text-secondary);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .math-row:last-child {
+                    border-bottom: none;
+                }
+
+                .math-value {
+                    font-family: 'Orbitron', sans-serif;
+                    color: var(--neon-green);
+                    font-weight: 600;
+                }
+
+                .math-formula {
+                    background: rgba(0, 0, 0, 0.3);
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin: 10px 0;
+                    font-family: 'Courier New', monospace;
+                    font-size: 0.75rem;
+                    color: var(--text-primary);
+                    line-height: 1.6;
+                }
+
+                .math-formula .highlight {
+                    color: var(--neon-green);
+                    font-weight: 700;
+                }
+
+                .math-total {
+                    background: rgba(0, 255, 136, 0.1);
+                    border: 1px solid rgba(0, 255, 136, 0.3);
+                    border-radius: 10px;
+                    padding: 12px 16px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 12px;
+                }
+
+                .math-total-label {
+                    font-size: 0.85rem;
+                    color: var(--text-primary);
+                    font-weight: 600;
+                }
+
+                .math-total-value {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.4rem;
+                    color: var(--neon-green);
+                    font-weight: 700;
+                }
+
+                .token-bar {
+                    display: flex;
+                    gap: 4px;
+                    margin: 8px 0;
+                }
+
+                .token-segment {
+                    height: 6px;
+                    border-radius: 3px;
+                }
+
+                .infra-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 12px;
+                    background: rgba(102, 126, 234, 0.08);
+                    border-radius: 8px;
+                    margin-bottom: 6px;
+                    font-size: 0.75rem;
+                }
+
+                .summary-box {
+                    background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(102, 126, 234, 0.15));
+                    border: 2px solid var(--neon-green);
+                    border-radius: 16px;
+                    padding: 20px;
+                    text-align: center;
+                    margin-top: 16px;
+                }
+
+                .summary-title {
+                    font-size: 0.8rem;
+                    color: var(--text-secondary);
+                    margin-bottom: 8px;
+                }
+
+                .summary-values {
+                    display: flex;
+                    justify-content: space-around;
+                    gap: 20px;
+                }
+
+                .summary-item-value {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.2rem;
+                    color: var(--neon-green);
+                    font-weight: 700;
+                }
+
+                .summary-item-label {
+                    font-size: 0.65rem;
+                    color: var(--text-secondary);
+                    margin-top: 2px;
+                }
+            </style>
+
+            <div class="math-grid">
+                <!-- Card 1: The Expense - Cost Breakdown -->
+                <div class="math-card" style="flex: 1; min-width: 300px; max-width: 380px;">
+                    <h4>💰 The Expense: Is The Math Mathing?</h4>
+
+                    <div class="math-section">
+                        <div class="math-section-title">LLM API Costs (Claude)</div>
+                        <div class="math-row">
+                            <span>Input tokens</span>
+                            <span class="math-value">$3/M</span>
+                        </div>
+                        <div class="math-row">
+                            <span>Output tokens</span>
+                            <span class="math-value">$15/M</span>
+                        </div>
+                    </div>
+
+                    <div class="math-section">
+                        <div class="math-section-title">Per Diagnosis Usage</div>
+                        <div class="math-row">
+                            <span>Input: ~120K tokens</span>
+                            <span class="math-value">$0.36</span>
+                        </div>
+                        <div class="math-row">
+                            <span>Output: ~1.5K tokens</span>
+                            <span class="math-value">$0.025</span>
+                        </div>
+                        <div class="math-row"
+                            style="border-top: 1px dashed rgba(0,255,136,0.3); margin-top: 6px; padding-top: 8px;">
+                            <span><strong>LLM per diagnosis</strong></span>
+                            <span class="math-value" style="font-size: 1rem;">$0.385</span>
+                        </div>
+                    </div>
+
+                    <div class="math-section">
+                        <div class="math-section-title">Infrastructure (AWS)</div>
+                        <div class="math-row">
+                            <span>K8s + ECR + CloudWatch + LB</span>
+                            <span class="math-value" style="color: var(--purple);">~$100/mo</span>
+                        </div>
+                    </div>
+
+                    <div class="math-formula">
+                        <strong>Monthly Total (300 incidents):</strong><br>
+                        Infrastructure: <span class="highlight">$100</span> (fixed)<br>
+                        LLM API: 300 × $0.39 = <span class="highlight">$117</span><br>
+                        ─────────────────────────<br>
+                        Total = <span class="highlight" style="font-size: 1.1rem;">$217/month</span>
+                    </div>
+
+                    <div
+                        style="margin-top: 16px; padding: 12px; background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--neon-green); border-radius: 0 8px 8px 0; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.6;">
+                        <strong style="color: var(--neon-green);">💡 Key Takeaway:</strong> The main cost driver is the
+                        <strong style="color: var(--text-primary);">LLM API</strong>, while infrastructure costs are
+                        relatively minor. LLM costs grow <strong style="color: var(--text-primary);">linearly</strong>
+                        with incidents, while infrastructure stays <strong
+                            style="color: var(--text-primary);">constant</strong> until we need to scale MCP servers.
+                    </div>
+                </div>
+
+                <!-- Card 2: Cost Optimizations Case Study -->
+                <div class="math-card" style="flex: 1; min-width: 320px; max-width: 420px;">
+                    <h4>⚡ Cost Optimisation Case Study</h4>
+
+                    <div class="math-section">
+                        <div class="math-section-title">Starting Point</div>
+                        <div class="math-row">
+                            <span>Baseline cost per diagnosis</span>
+                            <span class="math-value" style="color: var(--danger);">$0.385</span>
+                        </div>
+                    </div>
+
+                    <div class="math-section">
+                        <div class="math-section-title">Optimization Techniques</div>
+                        <div class="math-row"
+                            style="background: rgba(0,255,136,0.05); padding: 8px; border-radius: 6px; margin-bottom: 4px;">
+                            <span><strong>1. Selective Tool Access</strong><br><span
+                                    style="font-size: 0.65rem; color: var(--text-secondary);">Only expose needed tools
+                                    (9K→4K tokens)</span></span>
+                            <span class="math-value" style="font-size: 0.9rem;">-52%</span>
+                        </div>
+                        <div class="math-row"
+                            style="background: rgba(0,255,136,0.05); padding: 8px; border-radius: 6px; margin-bottom: 4px;">
+                            <span><strong>2. Tool Caching</strong><br><span
+                                    style="font-size: 0.65rem; color: var(--text-secondary);">Cache tool descriptions
+                                    ($0.3/M vs $3/M)</span></span>
+                            <span class="math-value" style="font-size: 0.9rem;">-39%</span>
+                        </div>
+                        <div class="math-row"
+                            style="background: rgba(0,255,136,0.05); padding: 8px; border-radius: 6px;">
+                            <span><strong>3. Conversation Caching</strong><br><span
+                                    style="font-size: 0.65rem; color: var(--text-secondary);">Cache full context
+                                    (124K→32 tokens!)</span></span>
+                            <span class="math-value" style="font-size: 0.9rem;">-66%</span>
+                        </div>
+                    </div>
+
+                    <div class="math-formula">
+                        <strong>Combined Result:</strong><br>
+                        Original: <span style="color: var(--danger);">$0.385</span> per diagnosis<br>
+                        Optimized: <span class="highlight" style="font-size: 1.2rem;">$0.067</span> per diagnosis<br>
+                        ─────────────────────────<br>
+                        Total Savings = <span class="highlight" style="font-size: 1.2rem;">83%</span>
+                    </div>
+
+                    <div
+                        style="margin-top: 16px; padding: 12px; background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--neon-green); border-radius: 0 8px 8px 0; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.6;">
+                        <strong style="color: var(--neon-green);">💡 Key Takeaway:</strong> At just <strong
+                            style="color: var(--text-primary);">6.7¢ per diagnosis</strong>, you could run <strong
+                            style="color: var(--text-primary);">thousands of automated diagnoses</strong> for the cost
+                        of a single human engineer's hour.
+                    </div>
+
+                    <a href="http://127.0.0.1:8080/view/002-agentic-sre-economics.html" target="_blank"
+                        style="display: block; margin-top: 12px; color: var(--purple); font-size: 0.75rem; text-decoration: underline;">
+                        How Expensive Is Autonomy?
+                    </a>
+                </div>
+
+                <!-- Card 3: Self-Hosted & Human Comparison -->
+                <div class="math-card" style="flex: 1; min-width: 320px; max-width: 420px;">
+                    <h4>🔄 The Alternatives</h4>
+
+                    <div class="math-section">
+                        <div class="math-section-title">Self-Hosted LLMs Comparison</div>
+                        <div style="font-size: 0.7rem; margin-bottom: 8px;">
+                            <div class="math-row" style="padding: 6px 0;">
+                                <span>Claude (optimized)</span>
+                                <span><span class="math-value">$0.067</span> <span
+                                        style="color: var(--text-secondary);">| 180+/hr</span></span>
+                            </div>
+                            <div class="math-row" style="padding: 6px 0;">
+                                <span>Mistral 7B (100% util.)</span>
+                                <span><span class="math-value" style="color: var(--warning);">$0.01</span> <span
+                                        style="color: var(--text-secondary);">| 128/hr</span></span>
+                            </div>
+                            <div class="math-row" style="padding: 6px 0;">
+                                <span>Mistral Large 2</span>
+                                <span><span class="math-value" style="color: var(--danger);">$1.05</span> <span
+                                        style="color: var(--text-secondary);">| 5/hr</span></span>
+                            </div>
+                        </div>
+                        <div
+                            style="font-size: 0.65rem; color: var(--text-secondary); padding: 6px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+                            ⚠️ At realistic 10% utilization, Mistral 7B costs <strong
+                                style="color: var(--danger);">$1.74/incident</strong> — 25x more than Claude!
+                        </div>
+                    </div>
+
+                    <div class="math-section">
+                        <div class="math-section-title">Human vs Agent (per incident)</div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <div
+                                style="flex: 1; background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.3); border-radius: 8px; padding: 10px; text-align: center;">
+                                <div style="font-size: 0.65rem; color: var(--text-secondary);">👤 Human</div>
+                                <div
+                                    style="font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--danger); font-weight: 700;">
+                                    $16.25</div>
+                                <div style="font-size: 0.6rem; color: var(--text-secondary);">15 min @ $65/hr</div>
+                            </div>
+                            <div
+                                style="flex: 1; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); border-radius: 8px; padding: 10px; text-align: center;">
+                                <div style="font-size: 0.65rem; color: var(--text-secondary);">🤖 Agent + Review</div>
+                                <div
+                                    style="font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--neon-green); font-weight: 700;">
+                                    $2.23</div>
+                                <div style="font-size: 0.6rem; color: var(--text-secondary);">$0.07 + 2min review</div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; font-size: 0.7rem; color: var(--text-secondary);">
+                            Break-even at just <strong style="color: var(--neon-green);">15% success rate</strong>
+                        </div>
+                    </div>
+
+                    <div class="beyond-cost-trigger"
+                        style="margin-top: 12px; padding: 10px; background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--neon-green); border-radius: 0 8px 8px 0; font-size: 0.68rem; color: var(--text-secondary); line-height: 1.5; cursor: pointer; transition: all 0.3s ease; position: relative;">
+                        <strong style="color: var(--neon-green);">Beyond Cost:</strong> <span
+                            style="font-size: 0.6rem; color: var(--purple);">(hover for details)</span><br>
+                        ⚡ Immediate response (lower MTTR)<br>
+                        🎯 Consistent diagnosis quality<br>
+                        🕐 24/7 availability, no burnout<br>
+                        🧠 Engineers focus on innovation
+                    </div>
+
+                    <!-- Beyond Cost Popup -->
+                    <div id="beyond-cost-popup" style="
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%) scale(0.9);
+                        width: 600px;
+                        max-width: 90vw;
+                        background: linear-gradient(135deg, var(--dark-card), rgba(0, 0, 0, 0.95));
+                        border: 2px solid var(--neon-green);
+                        border-radius: 16px;
+                        padding: 25px 30px;
+                        z-index: 1000;
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 25px 80px rgba(0, 255, 136, 0.3);
+                    ">
+                        <h4
+                            style="font-size: 1.1rem; color: var(--neon-green); margin-bottom: 12px; display: flex; align-items: center; gap: 10px;">
+                            💎 Beyond Cost: The Total Value Proposition
+                        </h4>
+                        <p
+                            style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.5;">
+                            The true economic impact extends beyond direct cost comparisons:
+                        </p>
+                        <ul style="list-style: none; padding: 0; margin: 0;">
+                            <li
+                                style="padding: 10px 12px; background: rgba(0, 255, 136, 0.05); border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 10px;">
+                                <span style="color: var(--neon-green); font-size: 1rem;">⚡</span>
+                                <span><strong style="color: var(--text-primary);">Response time:</strong> <span
+                                        style="color: var(--text-secondary);">Autonomous agents can begin diagnosis
+                                        immediately, reducing mean time to resolution (MTTR)</span></span>
+                            </li>
+                            <li
+                                style="padding: 10px 12px; background: rgba(0, 255, 136, 0.05); border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 10px;">
+                                <span style="color: var(--neon-green); font-size: 1rem;">🎯</span>
+                                <span><strong style="color: var(--text-primary);">Consistency:</strong> <span
+                                        style="color: var(--text-secondary);">Agents apply the same thorough approach to
+                                        every incident</span></span>
+                            </li>
+                            <li
+                                style="padding: 10px 12px; background: rgba(0, 255, 136, 0.05); border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 10px;">
+                                <span style="color: var(--neon-green); font-size: 1rem;">🧠</span>
+                                <span><strong style="color: var(--text-primary);">Knowledge retention:</strong> <span
+                                        style="color: var(--text-secondary);">Unlike human teams that experience
+                                        turnover and knowledge loss, agents maintain complete system
+                                        knowledge</span></span>
+                            </li>
+                            <li
+                                style="padding: 10px 12px; background: rgba(0, 255, 136, 0.05); border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 10px;">
+                                <span style="color: var(--neon-green); font-size: 1rem;">🕐</span>
+                                <span><strong style="color: var(--text-primary);">24/7 availability:</strong> <span
+                                        style="color: var(--text-secondary);">No off-hours, holidays, or vacation
+                                        coverage concerns</span></span>
+                            </li>
+                            <li
+                                style="padding: 10px 12px; background: rgba(0, 255, 136, 0.05); border-radius: 8px; font-size: 0.8rem; display: flex; align-items: flex-start; gap: 10px;">
+                                <span style="color: var(--neon-green); font-size: 1rem;">🚀</span>
+                                <span><strong style="color: var(--text-primary);">Team leverage:</strong> <span
+                                        style="color: var(--text-secondary);">Human SREs can focus on high-value work
+                                        instead of routine diagnostics</span></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom quote -->
+            <div
+                style="margin-top: 20px; max-width: 1100px; text-align: center; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; font-style: italic; padding: 15px 30px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; border-left: 3px solid var(--purple);">
+                "Capability is only half the equation. As any engineering leader knows, the critical question that
+                determines whether a technology moves from research to deployment is simple: Is it economically viable?
+                LLM-based agents introduce a new economic model where each <strong
+                    style="color: var(--text-primary);">"cognitive operation"</strong> carries a direct, measurable
+                cost. Every token processed, every reasoning step, every tool invocation adds to the bill. At scale,
+                these costs can accumulate rapidly."
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Response - Introducing El Agénte -->
+        <div class="slide" id="slide-7">
+            <span class="phase-badge">💡 The HOW</span>
+            <h2>Enter El Agénte</h2>
+            <div style="display: flex; align-items: center; gap: 40px; max-width: 1300px;">
+                <!-- Left: Hero Video -->
+                <div
+                    style="width: 850px; flex-shrink: 0; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);">
+                    <video autoplay loop muted playsinline
+                        style="width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;">
+                        <source src="Screen_blink.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <!-- Right: Text Content -->
+                <div style="flex: 0.8; text-align: left;">
+                    <p style="text-align: left; font-size: 1.1rem; color: var(--text-primary); line-height: 1.6;">
+                        An AI that <span class="highlight">never sleeps</span>,<br>
+                        investigates like a <span class="highlight">senior Engineer</span>,<br>
+                        and delivers solutions <span class="highlight">before you wake up</span>.
+                    </p>
+                    <div class="feature-list" style="margin-top: 20px;">
+                        <div class="feature-item" style="padding: 8px 0;">
+                            <div class="feature-icon" style="font-size: 1.2rem;">🔍</div>
+                            <span style="font-size: 0.9rem;">Topology-aware investigation</span>
+                        </div>
+                        <div class="feature-item" style="padding: 8px 0;">
+                            <div class="feature-icon" style="font-size: 1.2rem;">🧠</div>
+                            <span style="font-size: 0.9rem;">Context curation (no hallucinations)</span>
+                        </div>
+                        <div class="feature-item" style="padding: 8px 0;">
+                            <div class="feature-icon" style="font-size: 1.2rem;">📋</div>
+                            <span style="font-size: 0.9rem;">Auto-generated runbooks & docs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: Why There Is Nothing Like This In The Market -->
+        <div class="slide" id="slide-8" style="padding: 0; position: relative; overflow: hidden;">
+            <!-- Title at top -->
+            <h2
+                style="position: absolute; top: 25px; left: 50%; transform: translateX(-50%); text-align: center; margin: 0; font-size: 1.8rem; z-index: 20; white-space: nowrap;">
+                Why There Is Nothing Like This In The Market</h2>
+
+
+            <!-- Center Logo - Smaller -->
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 15;">
+                <div class="logo-container"
+                    style="width: 200px; height: 200px; margin: 0; box-shadow: 0 0 60px rgba(0, 255, 136, 0.5), 0 0 120px rgba(0, 255, 136, 0.3);">
+                    <video autoplay loop muted playsinline>
+                        <source src="animated-logo.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+
+            <!-- Top Left Video - ADIE (Initially hidden) -->
+            <div id="feature-card-1" class="feature-card"
+                style="position: absolute; top: 80px; left: 40px; width: calc(50% - 180px); z-index: 10; opacity: 0; transform: scale(0.8); transition: all 0.5s ease;">
+                <div
+                    style="background: var(--dark-card); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+                    <video id="video-1" loop muted playsinline
+                        style="width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #0d0d14;">
+                        <source src="ADIE.MP4" type="video/mp4">
+                    </video>
+                    <div
+                        style="padding: 12px 16px; background: linear-gradient(180deg, var(--dark-card-lighter), var(--dark-card));">
+                        <h4
+                            style="font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--neon-green); margin-bottom: 6px; letter-spacing: 1px;">
+                            ADAPTIVE DOMAIN INTELLIGENCE</h4>
+                        <p
+                            style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4; text-align: left; margin: 0;">
+                            Pre-loaded domain intelligence for instant context understanding.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Right Video - MCP (Initially hidden) -->
+            <div id="feature-card-2" class="feature-card"
+                style="position: absolute; top: 80px; right: 40px; width: calc(50% - 180px); z-index: 10; opacity: 0; transform: scale(0.8); transition: all 0.5s ease;">
+                <div
+                    style="background: var(--dark-card); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+                    <video id="video-2" loop muted playsinline
+                        style="width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #0d0d14;">
+                        <source src="MCP.MP4" type="video/mp4">
+                    </video>
+                    <div
+                        style="padding: 12px 16px; background: linear-gradient(180deg, var(--dark-card-lighter), var(--dark-card));">
+                        <h4
+                            style="font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--neon-green); margin-bottom: 6px; letter-spacing: 1px;">
+                            MCP-BASED ARCHITECTURE</h4>
+                        <p
+                            style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4; text-align: left; margin: 0;">
+                            Like USB-C — plug into any app or layer (Network, Infra, App).</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Left Video - Predictive Maintenance (Initially hidden) -->
+            <div id="feature-card-3" class="feature-card"
+                style="position: absolute; bottom: 50px; left: 40px; width: calc(50% - 180px); z-index: 10; opacity: 0; transform: scale(0.8); transition: all 0.5s ease;">
+                <div
+                    style="background: var(--dark-card); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+                    <video id="video-3" loop muted playsinline
+                        style="width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #0d0d14;">
+                        <source src="PredictiveMaintenance.mp4" type="video/mp4">
+                    </video>
+                    <div
+                        style="padding: 12px 16px; background: linear-gradient(180deg, var(--dark-card-lighter), var(--dark-card));">
+                        <h4
+                            style="font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--neon-green); margin-bottom: 6px; letter-spacing: 1px;">
+                            PREDICTIVE INSIGHTS</h4>
+                        <p
+                            style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4; text-align: left; margin: 0;">
+                            Dynamic system awareness with predictive anomaly detection.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Right Video - Context Curation (Initially hidden) -->
+            <div id="feature-card-4" class="feature-card"
+                style="position: absolute; bottom: 50px; right: 40px; width: calc(50% - 180px); z-index: 10; opacity: 0; transform: scale(0.8); transition: all 0.5s ease;">
+                <div
+                    style="background: var(--dark-card); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+                    <video id="video-4" loop muted playsinline
+                        style="width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #0d0d14;">
+                        <source src="CC_TA.mp4" type="video/mp4">
+                    </video>
+                    <div
+                        style="padding: 12px 16px; background: linear-gradient(180deg, var(--dark-card-lighter), var(--dark-card));">
+                        <h4
+                            style="font-family: 'Orbitron', sans-serif; font-size: 0.85rem; color: var(--neon-green); margin-bottom: 6px; letter-spacing: 1px;">
+                            TOPOLOGY AWARENESS</h4>
+                        <p
+                            style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4; text-align: left; margin: 0;">
+                            Context curation through intelligent topology understanding.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: Response - How It Works -->
+        <div class="slide" id="slide-9">
+            <span class="phase-badge">💡 Response</span>
+            <h2>Intelligent Context Curation</h2>
+            <div class="quote-box" style="max-width: 1100px;">
+                <p>"If you pipe that firehose of telemetry straight into the LLM, welcome to <span
+                        style="color: var(--danger);">hallucination city</span>. The solution is <span
+                        class="highlight">context curation</span> — strategically feeding only the signals that matter."
+                </p>
+                <div class="quote-source">— IBM Research</div>
+            </div>
+            <div class="flow-diagram" style="margin-top: 40px;">
+                <div class="flow-step" style="background: var(--dark-card-lighter);">📊 MELT Data</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">🎯 Topology Filter</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">🧠 AI Reasoning</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">📋 Root Cause</div>
+            </div>
+            <p style="margin-top: 30px;">
+                The agent uses dependency graphs to fetch <span class="highlight">only relevant telemetry</span><br>
+                from components actually involved in the incident.
+            </p>
+        </div>
+
+        <!-- SLIDE 10: Response - The Agent in Action -->
+        <div class="slide" id="slide-10">
+            <span class="phase-badge">💡 Response</span>
+            <h2>El Agénte in Action</h2>
+
+            <div style="display: flex; gap: 50px; align-items: center; max-width: 1300px;">
+                <!-- Smaller Grid Cards -->
+                <div class="content-grid" style="max-width: 600px; gap: 20px;">
+                    <div class="grid-card" style="border-color: rgba(0, 255, 136, 0.5); padding: 20px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 10px;">1️⃣ Perceive</h4>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Alert received: High Error Rate 🚨</li>
+                            <li>Time: 02:47:12 IST</li>
+                            <li>Impact: ₹1.55 lakh/minute</li>
+                        </ul>
+                    </div>
+                    <div class="grid-card" style="border-color: rgba(0, 255, 136, 0.5); padding: 20px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 10px;">2️⃣ Reason</h4>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Analyzing service topology...</li>
+                            <li>PaymentGateway → Database ⚠️</li>
+                            <li>Hypothesis: Connection pool (87%)</li>
+                        </ul>
+                    </div>
+                    <div class="grid-card" style="border-color: rgba(0, 255, 136, 0.5); padding: 20px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 10px;">3️⃣ Act</h4>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Query Loki logs ✓</li>
+                            <li>Search GitHub for changes ✓</li>
+                            <li>Found: MAX_CONNECTIONS = 10</li>
+                        </ul>
+                    </div>
+                    <div class="grid-card" style="border-color: rgba(0, 255, 136, 0.5); padding: 20px;">
+                        <h4 style="font-size: 0.85rem; margin-bottom: 10px;">4️⃣ Resolve</h4>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Root cause identified ✅</li>
+                            <li>Runbook generated 📋</li>
+                            <li>Slack & GitHub notified 📱</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Circular Flow Animation -->
+                <div style="position: relative; width: 380px; height: 380px;">
+                    <style>
+                        .cycle-node {
+                            position: absolute;
+                            width: 100px;
+                            height: 100px;
+                            border-radius: 50%;
+                            background: var(--dark-card);
+                            border: 3px solid var(--neon-green);
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            text-align: center;
+                            font-family: 'Orbitron', sans-serif;
+                            font-size: 0.7rem;
+                            font-weight: 600;
+                            color: var(--text-primary);
+                            box-shadow: 0 0 25px rgba(0, 255, 136, 0.3);
+                            z-index: 2;
+                            transition: all 0.3s ease;
+                        }
+
+                        .cycle-node:hover {
+                            transform: scale(1.1);
+                            box-shadow: 0 0 40px rgba(0, 255, 136, 0.6);
+                        }
+
+                        .cycle-node .icon {
+                            font-size: 1.5rem;
+                            margin-bottom: 5px;
+                        }
+
+                        .cycle-svg {
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                            height: 100%;
+                        }
+
+                        .cycle-path {
+                            fill: none;
+                            stroke: var(--neon-green);
+                            stroke-width: 2;
+                            stroke-linecap: round;
+                            opacity: 0.6;
+                        }
+
+                        .cycle-arrow {
+                            fill: var(--neon-green);
+                            animation: arrowGlow 2s ease-in-out infinite;
+                        }
+
+                        @keyframes arrowGlow {
+
+                            0%,
+                            100% {
+                                opacity: 0.6;
+                            }
+
+                            50% {
+                                opacity: 1;
+                                filter: drop-shadow(0 0 5px var(--neon-green));
+                            }
+                        }
+
+                        .cycle-dot {
+                            fill: var(--neon-green);
+                            animation: cycleDot 4s linear infinite;
+                        }
+
+                        @keyframes cycleDot {
+                            0% {
+                                offset-distance: 0%;
+                            }
+
+                            100% {
+                                offset-distance: 100%;
+                            }
+                        }
+                    </style>
+
+                    <!-- SVG Circular Path with Animated Arrows -->
+                    <svg class="cycle-svg" viewBox="0 0 380 380">
+                        <style>
+                            .arrow-path {
+                                fill: none;
+                                stroke: var(--neon-green);
+                                stroke-width: 3;
+                                stroke-linecap: round;
+                                stroke-dasharray: 200;
+                                stroke-dashoffset: 200;
+                                filter: drop-shadow(0 0 3px var(--neon-green));
+                            }
+
+                            .arrow-path-1 {
+                                animation: drawArrow 0.8s ease forwards 0.2s, glowPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            .arrow-path-2 {
+                                animation: drawArrow 0.8s ease forwards 1s, glowPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            .arrow-path-3 {
+                                animation: drawArrow 0.8s ease forwards 1.8s, glowPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            .arrow-path-4 {
+                                animation: drawArrow 0.8s ease forwards 2.6s, glowPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            @keyframes drawArrow {
+                                to {
+                                    stroke-dashoffset: 0;
+                                }
+                            }
+
+                            @keyframes glowPulse {
+
+                                0%,
+                                100% {
+                                    filter: drop-shadow(0 0 3px var(--neon-green));
+                                    opacity: 0.8;
+                                }
+
+                                50% {
+                                    filter: drop-shadow(0 0 12px var(--neon-green));
+                                    opacity: 1;
+                                }
+                            }
+
+                            .arrow-head {
+                                fill: var(--neon-green);
+                                opacity: 0;
+                                filter: drop-shadow(0 0 5px var(--neon-green));
+                            }
+
+                            .arrow-head-1 {
+                                animation: showArrowHead 0.3s ease forwards 0.9s, arrowHeadPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            .arrow-head-2 {
+                                animation: showArrowHead 0.3s ease forwards 1.7s, arrowHeadPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            .arrow-head-3 {
+                                animation: showArrowHead 0.3s ease forwards 2.5s, arrowHeadPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            .arrow-head-4 {
+                                animation: showArrowHead 0.3s ease forwards 3.3s, arrowHeadPulse 2s ease-in-out infinite 4s;
+                            }
+
+                            @keyframes showArrowHead {
+                                to {
+                                    opacity: 1;
+                                }
+                            }
+
+                            @keyframes arrowHeadPulse {
+
+                                0%,
+                                100% {
+                                    opacity: 0.8;
+                                    transform: scale(1);
+                                }
+
+                                50% {
+                                    opacity: 1;
+                                    transform: scale(1.2);
+                                }
+                            }
+
+                            /* Traveling dot animation */
+                            .travel-dot {
+                                fill: var(--neon-green);
+                                filter: drop-shadow(0 0 8px var(--neon-green));
+                            }
+
+                            .travel-dot-1 {
+                                offset-path: path('M 240 55 Q 320 100, 325 170');
+                                animation: travelDot 1s ease-in-out infinite 4s;
+                            }
+
+                            .travel-dot-2 {
+                                offset-path: path('M 320 220 Q 300 310, 220 335');
+                                animation: travelDot 1s ease-in-out infinite 4.25s;
+                            }
+
+                            .travel-dot-3 {
+                                offset-path: path('M 160 335 Q 70 300, 55 220');
+                                animation: travelDot 1s ease-in-out infinite 4.5s;
+                            }
+
+                            .travel-dot-4 {
+                                offset-path: path('M 55 160 Q 80 70, 160 50');
+                                animation: travelDot 1s ease-in-out infinite 4.75s;
+                            }
+
+                            @keyframes travelDot {
+                                0% {
+                                    offset-distance: 0%;
+                                    opacity: 1;
+                                }
+
+                                100% {
+                                    offset-distance: 100%;
+                                    opacity: 0;
+                                }
+                            }
+
+                            /* Dashed circle animation */
+                            .cycle-ring {
+                                fill: none;
+                                stroke: var(--neon-green);
+                                stroke-width: 1;
+                                stroke-dasharray: 8 4;
+                                opacity: 0.3;
+                                animation: rotateRing 20s linear infinite;
+                                transform-origin: center;
+                            }
+
+                            @keyframes rotateRing {
+                                to {
+                                    transform: rotate(360deg);
+                                }
+                            }
+                        </style>
+
+                        <!-- Animated dashed circle -->
+                        <ellipse cx="190" cy="190" rx="140" ry="140" class="cycle-ring" />
+
+                        <!-- Arrow 1: Validation → Runbook -->
+                        <path d="M 240 55 Q 320 100, 325 170" class="arrow-path arrow-path-1" />
+                        <polygon points="320,175 330,170 325,160" class="arrow-head arrow-head-1" />
+
+                        <!-- Arrow 2: Runbook → Workflow -->
+                        <path d="M 320 220 Q 300 310, 220 335" class="arrow-path arrow-path-2" />
+                        <polygon points="215,330 225,340 230,328" class="arrow-head arrow-head-2" />
+
+                        <!-- Arrow 3: Workflow → Document -->
+                        <path d="M 160 335 Q 70 300, 55 220" class="arrow-path arrow-path-3" />
+                        <polygon points="50,225 60,215 55,230" class="arrow-head arrow-head-3" />
+
+                        <!-- Arrow 4: Document → Validation -->
+                        <path d="M 55 160 Q 80 70, 160 50" class="arrow-path arrow-path-4" />
+                        <polygon points="165,45 155,55 165,60" class="arrow-head arrow-head-4" />
+
+                        <!-- Traveling dots -->
+                        <circle r="6" class="travel-dot travel-dot-1" />
+                        <circle r="6" class="travel-dot travel-dot-2" />
+                        <circle r="6" class="travel-dot travel-dot-3" />
+                        <circle r="6" class="travel-dot travel-dot-4" />
+                    </svg>
+
+
+                    <!-- Cycle Nodes -->
+                    <div class="cycle-node" style="top: 0; left: 50%; transform: translateX(-50%);">
+                        <span class="icon">✅</span>
+                        <span>Validation</span>
+                    </div>
+                    <div class="cycle-node" style="top: 50%; right: 0; transform: translateY(-50%);">
+                        <span class="icon">📋</span>
+                        <span>Runbook</span>
+                    </div>
+                    <div class="cycle-node" style="bottom: 0; left: 50%; transform: translateX(-50%);">
+                        <span class="icon">⚙️</span>
+                        <span>Workflow</span>
+                    </div>
+                    <div class="cycle-node" style="top: 50%; left: 0; transform: translateY(-50%);">
+                        <span class="icon">📄</span>
+                        <span>Document</span>
+                    </div>
+
+                    <!-- Center Label -->
+                    <div
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                        <div
+                            style="font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: var(--neon-green); font-weight: 700;">
+                            OUTPUT</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Cycle</div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin-top: 25px; font-size: 1.6rem;">
+                ⏱️ Total Time: <span class="highlight" style="font-size: 2.2rem;">2 minutes 34 seconds</span>
+            </p>
+        </div>
+
+
+        <div class="slide" id="slide-11">
+            <span class="phase-badge">🏆 Result</span>
+            <h2 style="margin-bottom: 5px;">The Transformation: Before vs After</h2>
+            <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 15px; font-style: italic;">
+                Before, your team woke up to <span style="color: var(--danger);">Problems</span>. Now, they wake up to
+                <span style="color: var(--neon-green);">Solutions</span>.
+            </p>
+            <div class="zigzag-container">
+                <!-- Row 1: Response Time (Left) -->
+                <div class="zigzag-row left">
+                    <div class="zigzag-card before">
+                        <div class="zigzag-title">Response Time</div>
+                        <div class="zigzag-content">
+                            <span class="zigzag-before-text">22+ minutes to start thinking</span>
+                            <span class="zigzag-arrow">→</span>
+                            <span class="zigzag-after-text">Instant (0 seconds)</span>
+                        </div>
+                    </div>
+                    <div class="zigzag-spacer"></div>
+                </div>
+
+                <!-- Row 2: Investigation Duration (Right) -->
+                <div class="zigzag-row right">
+                    <div class="zigzag-card after">
+                        <div class="zigzag-title">Investigation Duration</div>
+                        <div class="zigzag-content">
+                            <span class="zigzag-before-text">60-90 minutes of manual correlation</span>
+                            <span class="zigzag-arrow">→</span>
+                            <span class="zigzag-after-text">2-3 minutes automated</span>
+                        </div>
+                    </div>
+                    <div class="zigzag-spacer"></div>
+                </div>
+
+                <!-- Row 3: Context Gathering (Left) -->
+                <div class="zigzag-row left">
+                    <div class="zigzag-card before">
+                        <div class="zigzag-title">Context Gathering</div>
+                        <div class="zigzag-content">
+                            <span class="zigzag-before-text">Manual navigation across 8+ tools</span>
+                            <span class="zigzag-arrow">→</span>
+                            <span class="zigzag-after-text">Automatic, unified view</span>
+                        </div>
+                    </div>
+                    <div class="zigzag-spacer"></div>
+                </div>
+
+                <!-- Row 4: Root Cause Analysis (Right) -->
+                <div class="zigzag-row right">
+                    <div class="zigzag-card after">
+                        <div class="zigzag-title">Root Cause Analysis</div>
+                        <div class="zigzag-content">
+                            <span class="zigzag-before-text">Guesswork and trial-and-error</span>
+                            <span class="zigzag-arrow">→</span>
+                            <span class="zigzag-after-text">Evidence-based hypothesis</span>
+                        </div>
+                    </div>
+                    <div class="zigzag-spacer"></div>
+                </div>
+
+                <!-- Row 5: Documentation (Left) -->
+                <div class="zigzag-row left">
+                    <div class="zigzag-card before">
+                        <div class="zigzag-title">Documentation</div>
+                        <div class="zigzag-content">
+                            <span class="zigzag-before-text">Written manually post-incident</span>
+                            <span class="zigzag-arrow">→</span>
+                            <span class="zigzag-after-text">Generated automatically</span>
+                        </div>
+                    </div>
+                    <div class="zigzag-spacer"></div>
+                </div>
+
+                <!-- Row 6: Knowledge Sharing (Right) -->
+                <div class="zigzag-row right">
+                    <div class="zigzag-card after">
+                        <div class="zigzag-title">Knowledge Sharing</div>
+                        <div class="zigzag-content">
+                            <span class="zigzag-before-text">Tribal knowledge in engineer heads</span>
+                            <span class="zigzag-arrow">→</span>
+                            <span class="zigzag-after-text">Stored in searchable RAG</span>
+                        </div>
+                    </div>
+                    <div class="zigzag-spacer"></div>
+                </div>
+            </div>
+            <!-- Cost Impact Comparison -->
+            <div style="display: flex; gap: 40px; margin-top: 25px; justify-content: center;">
+                <div
+                    style="padding: 18px 40px; background: rgba(255, 68, 68, 0.15); border: 2px solid rgba(255, 68, 68, 0.4); border-radius: 12px; text-align: center;">
+                    <span style="font-size: 1.8rem; font-weight: 700; color: var(--danger);">₹23.25 Cr Lost</span>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">Before</div>
+                </div>
+                <div style="display: flex; align-items: center; font-size: 2rem; color: var(--neon-green);">→</div>
+                <div
+                    style="padding: 18px 40px; background: rgba(0, 255, 136, 0.15); border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 12px; text-align: center;">
+                    <span style="font-size: 1.8rem; font-weight: 700; color: var(--success);">₹4.65 L Lost</span>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">After</div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- SLIDE 13: Architecture -->
+        <div class="slide" id="slide-12">
+            <span class="phase-badge">🔧 Technical</span>
+            <h2 style="font-size: 1.6rem; margin-bottom: 10px;">How El Agénte Works</h2>
+
+            <!-- Evolution diagram: Image -> Arrow -> Video -->
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 10px;">
+                <!-- Evolution.png on the left -->
+                <div
+                    style="border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 25px rgba(0,0,0,0.4);">
+                    <img src="Evolution.png" alt="Evolution" style="width: 380px; height: auto; display: block;">
+                </div>
+
+                <!-- Arrow -->
+                <div style="font-size: 2rem; color: var(--neon-green); text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);">
+                    →</div>
+
+                <!-- Evolution.mp4 on the right -->
+                <div
+                    style="border: 2px solid rgba(0, 255, 136, 0.4); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 25px rgba(0,0,0,0.4);">
+                    <video autoplay loop muted playsinline style="width: 380px; height: auto; display: block;">
+                        <source src="Evolution.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+
+            <div class="content-grid" style="max-width: 1100px; gap: 12px;">
+                <div class="grid-card" data-popup-img="../docs/imgs/architecture/system_architecture_v2.png"
+                    onmouseenter="showCardPopup(this)" onmouseleave="hideCardPopup()">
+                    <h4>🔌 MCP Integration</h4>
+                    <ul>
+                        <li>Kubernetes MCP Server</li>
+                        <li>GitHub MCP Server</li>
+                        <li>Slack MCP Server</li>
+                        <li>Loki/Grafana Integration</li>
+                        <li>Tempo (Distributed Tracing)</li>
+                    </ul>
+                </div>
+                <div class="grid-card" data-popup-img="../docs/imgs/architecture/04_component_details.png"
+                    onmouseenter="showCardPopup(this)" onmouseleave="hideCardPopup()">
+                    <h4>🧠 AI Core</h4>
+                    <ul>
+                        <li>Claude Agent SDK</li>
+                        <li>Gemini for Analysis</li>
+                        <li>RAG for Past Incidents</li>
+                        <li>Topology-Aware Reasoning</li>
+                        <li>Chain of Thought Logging</li>
+                    </ul>
+                </div>
+                <div class="grid-card" data-popup-img="../docs/imgs/architecture/data_flow_diagram.png"
+                    onmouseenter="showCardPopup(this)" onmouseleave="hideCardPopup()">
+                    <h4>📊 Observability</h4>
+                    <ul>
+                        <li>Real-time Log Streaming</li>
+                        <li>Metrics Correlation</li>
+                        <li>Distributed Trace Analysis</li>
+                        <li>Service Dependency Graph</li>
+                        <li>Fault Propagation Chain</li>
+                    </ul>
+                </div>
+                <div class="grid-card" data-popup-img="../docs/imgs/architecture/03_sequence_diagram.png"
+                    onmouseenter="showCardPopup(this)" onmouseleave="hideCardPopup()">
+                    <h4>🚀 Output</h4>
+                    <ul>
+                        <li>Root Cause Analysis</li>
+                        <li>Step-by-Step Runbook</li>
+                        <li>Automation Scripts</li>
+                        <li>Slack Notifications</li>
+                        <li>GitHub Issue Creation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 14: Demo Transition -->
+        <div class="slide" id="slide-13">
+            <span class="phase-badge">🎬 Live Demo</span>
+            <div class="hero-content">
+                <div class="logo-container" style="width: 220px; height: 220px;">
+                    <video autoplay loop muted playsinline>
+                        <source src="animated-logo.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <h2>Live Demonstration</h2>
+                <p style="font-size: 1.8rem; color: var(--text-primary); margin-bottom: 40px;">
+                    Watch El Agénte detect, diagnose, and document<br>
+                    a production incident in <span class="highlight">real-time</span>.
+                </p>
+                <div class="flow-diagram">
+                    <div class="flow-step"
+                        style="background: var(--danger); border-color: var(--danger); color: white;">🚨
+                        Error</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">📜 Logs</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">🔔 Alert</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">🧠 Brain</div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step" style="background: var(--neon-green); color: var(--dark-bg);">✅ Done</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 15: Closing -->
+        <div class="slide" id="slide-14" style="padding: 0; position: relative; overflow: hidden;">
+            <!-- Fullscreen Closing Video -->
+            <video autoplay loop muted playsinline
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;">
+                <source src="Closing.mp4" type="video/mp4">
+            </video>
+
+            <!-- Dark overlay for text readability -->
+            <div
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 2;">
+            </div>
+
+            <!-- Content overlay - Left side, vertical stack -->
+            <div
+                style="position: absolute; top: 50%; left: 40px; transform: translateY(-50%); z-index: 10; text-align: left;">
+                <!-- Smaller Header -->
+                <h2 style="font-size: 1.2rem; margin-bottom: 3px; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">Remember
+                    this the next time</h2>
+                <p
+                    style="font-size: 1rem; color: var(--neon-green); font-style: italic; text-shadow: 0 2px 10px rgba(0,0,0,0.8); margin-bottom: 20px;">
+                    your pager goes off at 2 AM</p>
+
+                <!-- Three Key Metrics - Stacked vertically -->
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="stat-card" style="padding: 10px 18px; background: rgba(18, 18, 26, 0.85);">
+                        <div class="stat-number" style="font-size: 1.1rem; color: var(--danger);">$5,600</div>
+                        <div class="stat-label" style="font-size: 0.65rem;">Cost per minute of downtime</div>
+                    </div>
+                    <div class="stat-card" style="padding: 10px 18px; background: rgba(18, 18, 26, 0.85);">
+                        <div class="stat-number" style="font-size: 1.1rem; color: var(--warning);">4+ hrs</div>
+                        <div class="stat-label" style="font-size: 0.65rem;">Average incident resolution</div>
+                    </div>
+                    <div class="stat-card" style="padding: 10px 18px; background: rgba(18, 18, 26, 0.85);">
+                        <div class="stat-number" style="font-size: 1.1rem;">22 min</div>
+                        <div class="stat-label" style="font-size: 0.65rem;">Human cognitive wake-up time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <!-- SLIDE 16: Thank You -->
+        <div class="slide" id="slide-15">
+            <div class="hero-content" style="gap: 15px;">
+                <!-- Hero Journey Video - Big and Prominent -->
+                <div
+                    style="width: 450px; height: 450px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 60px rgba(0, 255, 136, 0.4), 0 0 120px rgba(0, 255, 136, 0.2);">
+                    <video autoplay loop muted playsinline style="width: 100%; height: 100%; object-fit: cover;">
+                        <source src="hero_journey.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <h1 style="margin-bottom: 5px; font-size: 3rem;">El Agénte</h1>
+                <p class="subtitle" style="margin-bottom: 15px; font-size: 1.2rem;">The Hero's Journey in Incident
+                    Response</p>
+                <!-- Compact Closing Message -->
+                <div
+                    style="max-width: 700px; margin: 0 auto; padding: 15px 25px; background: rgba(0,255,136,0.05); border-left: 3px solid var(--neon-green); border-radius: 0 12px 12px 0;">
+                    <p
+                        style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); text-align: left; font-style: italic;">
+                        It's truly an <span class="highlight">exciting time for IT operations</span>. Agentic AI will
+                        fundamentally change how we
+                        <strong style="color: var(--text-primary);">build</strong>, <strong
+                            style="color: var(--text-primary);">manage</strong> and <strong
+                            style="color: var(--text-primary);">sell</strong> software.
+                        <span style="color: var(--neon-green);">We need to be our Client Zero.</span>
+                    </p>
+                </div>
+                <div style="margin-top: 20px;">
+                    <p style="font-size: 2.2rem; color: var(--text-primary); font-weight: 600;">Thank You</p>
+                    <p style="margin-top: 8px; font-size: 1.1rem; color: var(--text-secondary);">Questions?</p>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Global Hover Popup (outside slides container to avoid overflow issues) -->
+    <div id="global-popup"
+        style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); z-index: 99999; opacity: 0; visibility: hidden; transition: all 0.3s ease; pointer-events: none;">
+        <img id="global-popup-img" src="" alt="Architecture Diagram"
+            style="max-width: 85vw; max-height: 80vh; border-radius: 16px; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.95), 0 0 60px rgba(0, 255, 136, 0.4); display: none;">
+        <video id="global-popup-video" autoplay loop muted playsinline
+            style="max-width: 85vw; max-height: 80vh; border-radius: 16px; box-shadow: 0 30px 100px rgba(0, 0, 0, 0.95), 0 0 60px rgba(0, 255, 136, 0.4); display: none;">
+        </video>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progress-bar" style="width: 6.67%;"></div>
+
+    <!-- Navigation -->
+    <div class="slide-counter">
+        Slide <span id="current-slide">1</span> / <span id="total-slides">16</span>
+    </div>
+
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">←</button>
+        <button class="nav-btn" onclick="nextSlide()">→</button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 15;
+        let moneyInterval = null;
+        let moneyAmount = 0;
+
+        function updateProgressBar() {
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+        }
+
+        // Global popup functions for hover diagrams
+        function showCardPopup(card) {
+            const imgSrc = card.getAttribute('data-popup-img');
+            const videoSrc = card.getAttribute('data-popup-video');
+
+            const popup = document.getElementById('global-popup');
+            const img = document.getElementById('global-popup-img');
+            const video = document.getElementById('global-popup-video');
+
+            // Hide both first
+            img.style.display = 'none';
+            video.style.display = 'none';
+
+            if (videoSrc) {
+                video.src = videoSrc;
+                video.style.display = 'block';
+                video.currentTime = 0;
+                video.play();
+            } else if (imgSrc) {
+                img.src = imgSrc;
+                img.style.display = 'block';
+            } else {
+                return;
+            }
+
+            popup.style.opacity = '1';
+            popup.style.visibility = 'visible';
+            popup.style.transform = 'translate(-50%, -50%) scale(1)';
+        }
+
+        function hideCardPopup() {
+            const popup = document.getElementById('global-popup');
+            const video = document.getElementById('global-popup-video');
+
+            popup.style.opacity = '0';
+            popup.style.visibility = 'hidden';
+            popup.style.transform = 'translate(-50%, -50%) scale(0.9)';
+
+            // Pause video when hiding
+            video.pause();
+        }
+
+        function startMoneyCounter() {
+            moneyAmount = 0;
+            const counter = document.getElementById('money-counter');
+            if (!counter) return;
+
+            counter.textContent = '₹0';
+
+            if (moneyInterval) clearInterval(moneyInterval);
+
+            moneyInterval = setInterval(() => {
+                moneyAmount += 2583; // ~₹1.55L per minute = ₹2583 per second
+                const formatted = moneyAmount >= 100000
+                    ? '₹' + (moneyAmount / 100000).toFixed(2) + 'L'
+                    : '₹' + moneyAmount.toLocaleString('en-IN');
+                counter.textContent = formatted;
+            }, 1000);
+        }
+
+        function stopMoneyCounter() {
+            if (moneyInterval) {
+                clearInterval(moneyInterval);
+                moneyInterval = null;
+            }
+        }
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+
+            if (n > totalSlides) currentSlide = 1;
+            if (n < 1) currentSlide = totalSlides;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            document.getElementById(`slide-${currentSlide}`).classList.add('active');
+
+            document.getElementById('current-slide').textContent = currentSlide;
+            updateProgressBar();
+
+            // Start money counter on slide 3
+            if (currentSlide === 3) {
+                startMoneyCounter();
+            } else {
+                stopMoneyCounter();
+            }
+
+            // Reset slide 8 cards when entering
+            if (currentSlide === 8) {
+                resetSlide8();
+            }
+        }
+
+        function nextSlide() {
+            currentSlide++;
+            showSlide(currentSlide);
+        }
+
+        function prevSlide() {
+            currentSlide--;
+            showSlide(currentSlide);
+        }
+
+        // Slide 8 - Interactive Feature Cards
+        let slide8RevealedCards = [false, false, false, false];
+
+        function revealFeatureCard(cardNum) {
+            if (currentSlide !== 8) return;
+            if (cardNum < 1 || cardNum > 4) return;
+
+            const card = document.getElementById(`feature-card-${cardNum}`);
+            const video = document.getElementById(`video-${cardNum}`);
+
+            if (card && !slide8RevealedCards[cardNum - 1]) {
+                // Reveal the card with animation
+                card.style.opacity = '1';
+                card.style.transform = 'scale(1)';
+                slide8RevealedCards[cardNum - 1] = true;
+
+                // Start the video from beginning
+                if (video) {
+                    video.currentTime = 0;
+                    video.play();
+                }
+
+                // Update hint if all cards revealed
+                if (slide8RevealedCards.every(v => v)) {
+                    const hint = document.getElementById('slide8-hint');
+                    if (hint) {
+                        hint.innerHTML = '<p style="font-size: 0.85rem; color: var(--neon-green); margin: 0;">✓ All features revealed! Press → to continue</p>';
+                    }
+                }
+            }
+        }
+
+        function resetSlide8() {
+            slide8RevealedCards = [false, false, false, false];
+            for (let i = 1; i <= 4; i++) {
+                const card = document.getElementById(`feature-card-${i}`);
+                const video = document.getElementById(`video-${i}`);
+                if (card) {
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.8)';
+                }
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            }
+            // Reset hint text
+            const hint = document.getElementById('slide8-hint');
+            if (hint) {
+                hint.innerHTML = '<p style="font-size: 0.85rem; color: var(--neon-green); margin: 0;">Press <kbd style="background: var(--dark-card); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">1</kbd> <kbd style="background: var(--dark-card); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">2</kbd> <kbd style="background: var(--dark-card); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">3</kbd> <kbd style="background: var(--dark-card); padding: 2px 8px; border-radius: 4px; margin: 0 3px;">4</kbd> to reveal each feature</p>';
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            // Slide 8 feature card reveals
+            if (currentSlide === 8 && ['1', '2', '3', '4'].includes(e.key)) {
+                e.preventDefault();
+                revealFeatureCard(parseInt(e.key));
+                return;
+            }
+
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                currentSlide = 1;
+                showSlide(currentSlide);
+            } else if (e.key === 'End') {
+                currentSlide = totalSlides;
+                showSlide(currentSlide);
+            }
+        });
+
+        // Beyond Cost hover popup
+        const beyondCostTrigger = document.querySelector('.beyond-cost-trigger');
+        const beyondCostPopup = document.getElementById('beyond-cost-popup');
+
+        if (beyondCostTrigger && beyondCostPopup) {
+            beyondCostTrigger.addEventListener('mouseenter', () => {
+                beyondCostPopup.style.opacity = '1';
+                beyondCostPopup.style.visibility = 'visible';
+                beyondCostPopup.style.transform = 'translate(-50%, -50%) scale(1)';
+                beyondCostTrigger.style.background = 'rgba(0, 255, 136, 0.15)';
+                beyondCostTrigger.style.borderLeftWidth = '5px';
+            });
+
+            beyondCostTrigger.addEventListener('mouseleave', () => {
+                beyondCostPopup.style.opacity = '0';
+                beyondCostPopup.style.visibility = 'hidden';
+                beyondCostPopup.style.transform = 'translate(-50%, -50%) scale(0.9)';
+                beyondCostTrigger.style.background = 'rgba(0, 255, 136, 0.08)';
+                beyondCostTrigger.style.borderLeftWidth = '3px';
+            });
+
+            beyondCostPopup.addEventListener('mouseenter', () => {
+                beyondCostPopup.style.opacity = '1';
+                beyondCostPopup.style.visibility = 'visible';
+                beyondCostPopup.style.transform = 'translate(-50%, -50%) scale(1)';
+            });
+
+            beyondCostPopup.addEventListener('mouseleave', () => {
+                beyondCostPopup.style.opacity = '0';
+                beyondCostPopup.style.visibility = 'hidden';
+                beyondCostPopup.style.transform = 'translate(-50%, -50%) scale(0.9)';
+                beyondCostTrigger.style.background = 'rgba(0, 255, 136, 0.08)';
+                beyondCostTrigger.style.borderLeftWidth = '3px';
+            });
+        }
+
+        // Touch swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        }
+
+        // Initialize
+        showSlide(currentSlide);
+    </script>
+</body>
+
+</html>
