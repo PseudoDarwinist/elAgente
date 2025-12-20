@@ -2,8 +2,7 @@
 
 > **Production-Grade AI-Powered Incident Response System**  
 > **Version**: 2.0 (Topology-Aware)  
-> **Last Updated**: December 9, 2025  
-> **Branch**: `feature/topology-aware-agent`
+> **Last Updated**: December 20, 2024  
 
 ---
 
@@ -218,7 +217,7 @@ curl -X POST http://localhost:4000/api/admin/fault \
 
 | Component | Technology | Port | Purpose |
 |-----------|------------|------|---------|
-| Dashboard | Next.js 16 + React | 3002 | Real-time investigation UI |
+| Dashboard | Next.js 16 + React | 3001 | Real-time investigation UI |
 
 **Key UI Components**:
 - `page.tsx` - Main page with SSE event handling
@@ -311,14 +310,14 @@ npx tsx src/index.ts
 cd /Users/chetansingh/Documents/Hackathon/sre-agent/sre-dashboard
 
 npm install
-npm run dev -- -p 3002
+npm run dev
 ```
 
 ### Step 4: Access the UIs
 
 | Service | URL |
 |---------|-----|
-| **SRE Dashboard** | http://localhost:3002 |
+| **SRE Dashboard** | http://localhost:3001 |
 | **Aura E-commerce** | http://localhost:8080 |
 | **Grafana** | http://localhost:3000 |
 | **Prometheus** | http://localhost:9090 |
@@ -332,7 +331,7 @@ curl -X POST http://localhost:4000/api/admin/fault \
   -H "Content-Type: application/json" \
   -d '{"db_down": true}'
 
-# 2. Go to Dashboard (http://localhost:3002)
+# 2. Go to Dashboard (http://localhost:3001)
 # 3. Type "aura-backend" in the search box
 # 4. Click "Diagnose"
 # 5. Watch the investigation progress!
