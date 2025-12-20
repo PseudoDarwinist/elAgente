@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Agénte — The AI That Never Sleeps</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ========================================
+           CSS CUSTOM PROPERTIES - FT INSPIRED
+           ======================================== */
+        :root {
+            /* Core palette - warm, editorial */
+            --paper: #fff1e5;
+            --paper-dark: #f6e9d8;
+            --ink: #1a1a2e;
+            --ink-light: #33334d;
+            --accent-teal: #0d7680;
+            --accent-salmon: #990f3d;
+            --accent-coral: #ff7f6e;
+            --accent-gold: #c9a227;
+            --success-green: #0a8754;
+            --danger-red: #cc0000;
+
+            /* Typography scale */
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+            /* Spacing */
+            --section-padding: clamp(4rem, 10vh, 8rem);
+            --content-max-width: 1200px;
+            --text-max-width: 720px;
+        }
+
+        /* ========================================
+           RESET & BASE
+           ======================================== */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--paper);
+            color: var(--ink);
+            line-height: 1.7;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Subtle paper texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.02;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ========================================
+           TYPOGRAPHY
+           ======================================== */
+        h1,
+        h2,
+        h3 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 8vw, 7rem);
+            color: var(--ink);
+        }
+
+        h2 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            margin-bottom: 1.5rem;
+        }
+
+        h3 {
+            font-size: clamp(1.5rem, 3vw, 2.5rem);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+            max-width: var(--text-max-width);
+            color: var(--ink-light);
+        }
+
+        .lead {
+            font-size: clamp(1.25rem, 2vw, 1.75rem);
+            font-weight: 400;
+            color: var(--ink);
+        }
+
+        .accent-text {
+            color: var(--accent-salmon);
+            font-weight: 600;
+        }
+
+        .teal-text {
+            color: var(--accent-teal);
+        }
+
+        /* ========================================
+           SECTIONS & LAYOUT
+           ======================================== */
+        section {
+            min-height: 100vh;
+            padding: var(--section-padding) 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .content-wrapper {
+            max-width: var(--content-max-width);
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Dark sections */
+        .dark-section {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .dark-section h2,
+        .dark-section h3 {
+            color: var(--paper);
+        }
+
+        .dark-section p {
+            color: rgba(255, 241, 229, 0.8);
+        }
+
+        /* Gradient transitions */
+        .gradient-top {
+            background: linear-gradient(to bottom, var(--paper), var(--ink));
+        }
+
+        .gradient-bottom {
+            background: linear-gradient(to bottom, var(--ink), var(--paper));
+        }
+
+        /* ========================================
+           HERO SECTION
+           ======================================== */
+        #hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-logo {
+            width: 200px;
+            height: 200px;
+            margin-bottom: 2rem;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        .hero-logo video,
+        .hero-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            }
+
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 25px 80px rgba(13, 118, 128, 0.25);
+            }
+        }
+
+        .hero-tagline {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+            color: var(--accent-teal);
+            margin-top: 1.5rem;
+            opacity: 0.9;
+        }
+
+        .hero-subtitle {
+            margin-top: 3rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--ink-light);
+            opacity: 0.7;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0.6;
+            animation: bob 2s ease-in-out infinite;
+        }
+
+        .scroll-indicator span {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .scroll-indicator svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        @keyframes bob {
+
+            0%,
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+
+            50% {
+                transform: translateX(-50%) translateY(8px);
+            }
+        }
+
+        /* ========================================
+           NARRATIVE SECTIONS - SCROLL REVEAL
+           ======================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 {
+            transition-delay: 0.1s;
+        }
+
+        .reveal-delay-2 {
+            transition-delay: 0.2s;
+        }
+
+        .reveal-delay-3 {
+            transition-delay: 0.3s;
+        }
+
+        .reveal-delay-4 {
+            transition-delay: 0.4s;
+        }
+
+        /* ========================================
+           THE SCENARIO - CODE TERMINAL
+           ======================================== */
+        .terminal {
+            background: #1e1e2e;
+            border-radius: 12px;
+            padding: 0;
+            max-width: 700px;
+            width: 100%;
+            margin: 2rem auto;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 0.9rem;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            background: #313244;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red {
+            background: #f38ba8;
+        }
+
+        .terminal-dot.yellow {
+            background: #f9e2af;
+        }
+
+        .terminal-dot.green {
+            background: #a6e3a1;
+        }
+
+        .terminal-body {
+            padding: 1.5rem;
+            color: #cdd6f4;
+            line-height: 1.8;
+        }
+
+        .terminal-line {
+            opacity: 0;
+            animation: typeIn 0.5s ease forwards;
+        }
+
+        .terminal-line:nth-child(1) {
+            animation-delay: 0.5s;
+        }
+
+        .terminal-line:nth-child(2) {
+            animation-delay: 1s;
+        }
+
+        .terminal-line:nth-child(3) {
+            animation-delay: 1.5s;
+        }
+
+        .terminal-line:nth-child(4) {
+            animation-delay: 2s;
+        }
+
+        .terminal-line:nth-child(5) {
+            animation-delay: 2.5s;
+        }
+
+        @keyframes typeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .terminal-time {
+            color: #f9e2af;
+        }
+
+        .terminal-error {
+            color: #f38ba8;
+        }
+
+        .terminal-critical {
+            color: #f38ba8;
+            font-weight: bold;
+            background: rgba(243, 139, 168, 0.1);
+            padding: 0 4px;
+            border-radius: 3px;
+        }
+
+        .terminal-service {
+            color: #89b4fa;
+        }
+
+        /* ========================================
+           THE BIG NUMBER
+           ======================================== */
+        .big-number {
+            font-family: var(--font-display);
+            font-size: clamp(4rem, 15vw, 12rem);
+            font-weight: 900;
+            line-height: 1;
+            color: var(--accent-salmon);
+            margin: 1rem 0;
+        }
+
+        .big-number-label {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--ink-light);
+            margin-top: 0.5rem;
+        }
+
+        /* Counter animation */
+        .counting {
+            display: inline-block;
+        }
+
+        /* ========================================
+           STATS GRID
+           ======================================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+            width: 100%;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent-teal);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--ink-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .dark-section .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dark-section .stat-number {
+            color: var(--accent-coral);
+        }
+
+        .dark-section .stat-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* ========================================
+           QUOTE BLOCK
+           ======================================== */
+        .quote-block {
+            position: relative;
+            padding: 2rem 0 2rem 3rem;
+            margin: 3rem 0;
+            max-width: 800px;
+        }
+
+        .quote-block::before {
+            content: '"';
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-family: var(--font-display);
+            font-size: 6rem;
+            color: var(--accent-teal);
+            opacity: 0.3;
+            line-height: 1;
+        }
+
+        .quote-text {
+            font-family: var(--font-display);
+            font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+            font-style: italic;
+            color: var(--ink);
+            line-height: 1.6;
+        }
+
+        .quote-source {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--accent-teal);
+            font-weight: 500;
+        }
+
+        /* ========================================
+           TIMELINE
+           ======================================== */
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--danger-red), var(--accent-salmon));
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 60px;
+            padding-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--danger-red);
+            border: 3px solid var(--paper);
+        }
+
+        .timeline-time {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--danger-red);
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-event {
+            color: var(--ink-light);
+            font-size: 1.1rem;
+        }
+
+        /* ========================================
+           SPLIT COMPARISON
+           ======================================== */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            width: 100%;
+            margin: 3rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .comparison-side {
+            padding: 2.5rem;
+            border-radius: 20px;
+        }
+
+        .comparison-before {
+            background: linear-gradient(135deg, rgba(204, 0, 0, 0.08), rgba(204, 0, 0, 0.02));
+            border: 2px solid rgba(204, 0, 0, 0.2);
+        }
+
+        .comparison-after {
+            background: linear-gradient(135deg, rgba(10, 135, 84, 0.08), rgba(10, 135, 84, 0.02));
+            border: 2px solid rgba(10, 135, 84, 0.2);
+        }
+
+        .comparison-header {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .comparison-before .comparison-header {
+            color: var(--danger-red);
+        }
+
+        .comparison-after .comparison-header {
+            color: var(--success-green);
+        }
+
+        .comparison-list {
+            list-style: none;
+        }
+
+        .comparison-list li {
+            padding: 0.75rem 0;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .comparison-before li::before {
+            content: '✗';
+            color: var(--danger-red);
+            font-weight: bold;
+        }
+
+        .comparison-after li::before {
+            content: '✓';
+            color: var(--success-green);
+            font-weight: bold;
+        }
+
+        /* ========================================
+           SERVICE ATTENTION VISUALIZATION
+           ======================================== */
+        .attention-viz {
+            width: 100%;
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 2rem;
+        }
+
+        .attention-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+        }
+
+        .attention-node {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .attention-node.source {
+            background: var(--danger-red);
+            color: white;
+            animation: attention-glow-red 2s ease-in-out infinite;
+        }
+
+        .attention-node.agent {
+            background: var(--accent-teal);
+            color: white;
+            animation: attention-glow-teal 2s ease-in-out infinite 0.5s;
+        }
+
+        .attention-node.tool {
+            background: white;
+            color: var(--ink);
+            border: 2px solid var(--ink-light);
+        }
+
+        .attention-node.solution {
+            background: var(--success-green);
+            color: white;
+            animation: attention-glow-green 2s ease-in-out infinite 1s;
+        }
+
+        .attention-arrow {
+            font-size: 1.5rem;
+            color: var(--ink-light);
+            animation: arrow-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes attention-glow-red {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(204, 0, 0, 0);
+            }
+        }
+
+        @keyframes attention-glow-teal {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(13, 118, 128, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(13, 118, 128, 0);
+            }
+        }
+
+        @keyframes attention-glow-green {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(10, 135, 84, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(10, 135, 84, 0);
+            }
+        }
+
+        @keyframes arrow-pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+                transform: translateX(0);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateX(3px);
+            }
+        }
+
+        /* ========================================
+           ARCHITECTURE GRID
+           ======================================== */
+        .arch-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin: 3rem 0;
+            max-width: 800px;
+        }
+
+        @media (max-width: 600px) {
+            .arch-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .arch-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .arch-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .arch-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .arch-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-teal);
+            margin-bottom: 0.75rem;
+        }
+
+        .arch-desc {
+            font-size: 0.95rem;
+            color: var(--ink-light);
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           DEMO FLOW VISUALIZATION
+           ======================================== */
+        .demo-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin: 3rem 0;
+            flex-wrap: wrap;
+        }
+
+        .demo-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .demo-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            transition: all 0.4s ease;
+        }
+
+        .demo-icon.error {
+            background: var(--danger-red);
+            color: white;
+        }
+
+        .demo-icon.logs {
+            background: #f9e2af;
+            color: var(--ink);
+        }
+
+        .demo-icon.alert {
+            background: var(--accent-coral);
+            color: white;
+        }
+
+        .demo-icon.brain {
+            background: var(--accent-teal);
+            color: white;
+        }
+
+        .demo-icon.done {
+            background: var(--success-green);
+            color: white;
+        }
+
+        .demo-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ink-light);
+        }
+
+        .demo-connector {
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(to right, var(--ink-light), transparent);
+            position: relative;
+        }
+
+        .demo-step.active .demo-icon {
+            animation: demo-pulse 1s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(13, 118, 128, 0.5);
+        }
+
+        @keyframes demo-pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        /* ========================================
+           IMPACT NUMBERS - DRAMATIC REVEAL
+           ======================================== */
+        .impact-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4rem;
+            margin: 3rem 0;
+            flex-wrap: wrap;
+        }
+
+        .impact-vs {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--ink-light);
+        }
+
+        .impact-box {
+            text-align: center;
+        }
+
+        .impact-number {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .impact-before .impact-number {
+            color: var(--danger-red);
+            text-decoration: line-through;
+            text-decoration-thickness: 4px;
+        }
+
+        .impact-after .impact-number {
+            color: var(--success-green);
+        }
+
+        .impact-label {
+            font-size: 1rem;
+            color: var(--ink-light);
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* ========================================
+           CTA SECTION
+           ======================================== */
+        .cta-section {
+            text-align: center;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1.25rem 3rem;
+            background: var(--accent-teal);
+            color: white;
+            font-family: var(--font-body);
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(13, 118, 128, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(13, 118, 128, 0.4);
+            background: #0a6068;
+        }
+
+        /* ========================================
+           FINAL SECTION
+           ======================================== */
+        .final-stats {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin: 3rem 0;
+            flex-wrap: wrap;
+        }
+
+        .final-stat {
+            text-align: center;
+        }
+
+        .final-stat-number {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--accent-teal);
+        }
+
+        .dark-section .final-stat-number {
+            color: var(--accent-coral);
+        }
+
+        .final-stat-label {
+            font-size: 0.9rem;
+            color: var(--ink-light);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.25rem;
+        }
+
+        .dark-section .final-stat-label {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* ========================================
+           UTILITY CLASSES
+           ======================================== */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-1 {
+            margin-top: 1rem;
+        }
+
+        .mt-2 {
+            margin-top: 2rem;
+        }
+
+        .mt-3 {
+            margin-top: 3rem;
+        }
+
+        .mb-1 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 2rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 3rem;
+        }
+
+        /* ========================================
+           ANIMATED BACKGROUND ELEMENTS
+           ======================================== */
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.05;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-teal);
+            top: -100px;
+            right: -100px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            background: var(--accent-salmon);
+            bottom: -50px;
+            left: -50px;
+            animation: float 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            33% {
+                transform: translate(30px, -30px) rotate(5deg);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) rotate(-5deg);
+            }
+        }
+
+        /* ========================================
+           SERVICE TOPOLOGY ANIMATION
+           ======================================== */
+        .topology-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            margin: 2rem auto;
+        }
+
+        .topology-node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 2;
+        }
+
+        .topology-node.center {
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: var(--accent-teal);
+            animation: center-pulse 3s ease-in-out infinite;
+        }
+
+        .topology-node.service-1 {
+            top: 20px;
+            left: 20%;
+            animation: orbit-1 6s ease-in-out infinite;
+        }
+
+        .topology-node.service-2 {
+            top: 20px;
+            right: 20%;
+            animation: orbit-2 6s ease-in-out infinite 0.5s;
+        }
+
+        .topology-node.service-3 {
+            bottom: 20px;
+            left: 15%;
+            animation: orbit-3 6s ease-in-out infinite 1s;
+        }
+
+        .topology-node.service-4 {
+            bottom: 20px;
+            right: 15%;
+            animation: orbit-4 6s ease-in-out infinite 1.5s;
+        }
+
+        .topology-node.service-5 {
+            top: 50%;
+            left: 5%;
+            transform: translateY(-50%);
+            animation: orbit-5 6s ease-in-out infinite 2s;
+        }
+
+        .topology-node.service-6 {
+            top: 50%;
+            right: 5%;
+            transform: translateY(-50%);
+            animation: orbit-6 6s ease-in-out infinite 2.5s;
+        }
+
+        @keyframes center-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(13, 118, 128, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 20px rgba(13, 118, 128, 0);
+            }
+        }
+
+        @keyframes orbit-1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(5px, 10px);
+            }
+        }
+
+        @keyframes orbit-2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-5px, 10px);
+            }
+        }
+
+        @keyframes orbit-3 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(8px, -8px);
+            }
+        }
+
+        @keyframes orbit-4 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-8px, -8px);
+            }
+        }
+
+        @keyframes orbit-5 {
+
+            0%,
+            100% {
+                transform: translateY(-50%);
+            }
+
+            50% {
+                transform: translateY(-50%) translateX(5px);
+            }
+        }
+
+        @keyframes orbit-6 {
+
+            0%,
+            100% {
+                transform: translateY(-50%);
+            }
+
+            50% {
+                transform: translateY(-50%) translateX(-5px);
+            }
+        }
+
+        /* SVG Lines connecting nodes */
+        .topology-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .topology-line {
+            stroke: var(--ink-light);
+            stroke-width: 1;
+            stroke-dasharray: 5, 5;
+            opacity: 0.3;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -100;
+            }
+        }
+
+        /* ========================================
+           PROGRESS BAR (optional)
+           ======================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent-teal);
+            z-index: 9999;
+            transition: width 0.2s ease;
+        }
+
+        /* ========================================
+           REDUCED MOTION
+           ======================================== */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- ==========================================
+         SECTION 1: HERO
+         ========================================== -->
+    <section id="hero">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+        </div>
+
+        <div class="hero-logo">
+            <video autoplay loop muted playsinline>
+                <source src="animated-logo.mp4" type="video/mp4">
+            </video>
+        </div>
+
+        <h1>El Agénte</h1>
+
+        <p class="hero-tagline">The AI that never sleeps</p>
+
+        <p class="hero-subtitle">An AI-Powered SRE Agent for Intelligent Incident Investigation</p>
+
+        <div class="scroll-indicator">
+            <span>Scroll to begin</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
+            </svg>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 2: THE PROBLEM UNFOLDS
+         ========================================== -->
+    <section id="scenario" class="dark-section">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal">It's <span style="color: var(--accent-coral);">2:47 AM</span> in Bengaluru</h2>
+
+            <p class="lead reveal reveal-delay-1" style="max-width: 700px; margin: 0 auto;">
+                Your e-commerce platform is handling <strong style="color: var(--accent-coral);">Diwali
+                    traffic</strong>.<br>
+                <span style="font-family: var(--font-display); font-size: 2rem; color: white;">₹93 crore</span> in
+                transactions per hour.
+            </p>
+
+            <div class="terminal reveal reveal-delay-2">
+                <div class="terminal-header">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                </div>
+                <div class="terminal-body">
+                    <div class="terminal-line"><span class="terminal-time">[02:47:12]</span> <span
+                            class="terminal-error">ERROR</span> <span class="terminal-service">PaymentGateway</span>:
+                        Connection timeout to database</div>
+                    <div class="terminal-line"><span class="terminal-time">[02:47:13]</span> <span
+                            class="terminal-error">ERROR</span> <span class="terminal-service">CartService</span>:
+                        Unable to process checkout</div>
+                    <div class="terminal-line"><span class="terminal-time">[02:47:14]</span> <span
+                            class="terminal-error">ERROR</span> <span class="terminal-service">OrderService</span>:
+                        Transaction failed - upstream unavailable</div>
+                    <div class="terminal-line"><span class="terminal-time">[02:47:15]</span> <span
+                            class="terminal-critical">CRITICAL</span> 🚨 Error rate: 0.1% → 42%</div>
+                    <div class="terminal-line" style="margin-top: 1rem; color: #f38ba8;">Revenue impact: <strong>₹1.55
+                            lakh per minute</strong></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 3: THE HUMAN COST
+         ========================================== -->
+    <section id="human-cost">
+        <div class="content-wrapper text-center">
+            <span class="reveal"
+                style="display: inline-block; padding: 0.5rem 1.5rem; background: rgba(153, 15, 61, 0.1); border-radius: 50px; font-size: 0.9rem; color: var(--accent-salmon); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;">The
+                Human Factor</span>
+
+            <h2 class="reveal reveal-delay-1 mt-2">The Sleep Inertia Problem</h2>
+
+            <div class="quote-block reveal reveal-delay-2">
+                <p class="quote-text">
+                    "If I woke you up at 2 AM and asked you to debug a production outage,
+                    it would take you on average <strong style="color: var(--accent-teal);">22 minutes</strong> just to
+                    move
+                    from a sleeping state to a cognitive state where you're actually productive."
+                </p>
+                <p class="quote-source">— IBM Research on Agentic AI</p>
+            </div>
+
+            <div class="stats-grid reveal reveal-delay-3">
+                <div class="stat-card">
+                    <div class="stat-number counting" data-target="22">0</div>
+                    <div class="stat-label">Minutes to Wake Up</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: var(--danger-red);">₹34L</div>
+                    <div class="stat-label">Lost Before Brain Works</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number counting" data-target="4">0</div>
+                    <div class="stat-label">Hours Avg MTTR</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number counting" data-target="12">0</div>
+                    <div class="stat-label">Tools to Navigate</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 4: TRADITIONAL TIMELINE
+         ========================================== -->
+    <section id="traditional" style="background: var(--paper-dark);">
+        <div class="content-wrapper">
+            <h2 class="reveal text-center">The Traditional Timeline</h2>
+            <p class="reveal reveal-delay-1 text-center lead" style="margin: 0 auto 2rem;">
+                What actually happens when the pager goes off at 2:47 AM
+            </p>
+
+            <div class="timeline reveal reveal-delay-2">
+                <div class="timeline-item">
+                    <span class="timeline-time">T+0</span>
+                    <span class="timeline-event">Alert fires. Engineer is asleep. 😴</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-time">T+22m</span>
+                    <span class="timeline-event">Finally able to think clearly 🧠</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-time">T+45m</span>
+                    <span class="timeline-event">Found the right dashboard 🔍</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-time">T+90m</span>
+                    <span class="timeline-event">Correlating logs and metrics 📊</span>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-time">T+150m</span>
+                    <span class="timeline-event">Root cause identified & fixed ✅</span>
+                </div>
+            </div>
+
+            <div class="reveal reveal-delay-3 text-center mt-3">
+                <p style="font-size: 1.5rem; color: var(--danger-red); font-weight: 600;">
+                    Total: 2.5 hours &nbsp;|&nbsp; Revenue Lost: <strong>₹23.25 crore</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 5: ENTER EL AGENTE
+         ========================================== -->
+    <section id="solution" class="dark-section">
+        <div class="content-wrapper text-center">
+            <span class="reveal"
+                style="display: inline-block; padding: 0.5rem 1.5rem; background: rgba(13, 118, 128, 0.2); border-radius: 50px; font-size: 0.9rem; color: var(--accent-coral); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;">The
+                Response</span>
+
+            <h2 class="reveal reveal-delay-1 mt-2" style="font-size: clamp(2.5rem, 6vw, 5rem);">
+                Enter <span style="color: var(--accent-coral);">El Agénte</span>
+            </h2>
+
+            <div class="reveal reveal-delay-2" style="margin: 2rem 0;">
+                <div class="hero-logo" style="margin: 0 auto;">
+                    <video autoplay loop muted playsinline>
+                        <source src="animated-logo.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+
+            <p class="lead reveal reveal-delay-3" style="margin: 0 auto; color: rgba(255,255,255,0.9);">
+                An intelligent SRE agent that investigates incidents<br>
+                <strong style="color: var(--accent-coral);">before your engineer finishes waking up.</strong>
+            </p>
+
+            <div class="stats-grid reveal reveal-delay-4 mt-3"
+                style="max-width: 800px; margin-left: auto; margin-right: auto;">
+                <div class="stat-card">
+                    <div class="stat-number">🧠</div>
+                    <div class="stat-label">Autonomous Reasoning</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">🔗</div>
+                    <div class="stat-label">Context Curation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">⚡</div>
+                    <div class="stat-label">Real-time Analysis</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 6: HOW IT WORKS - ATTENTION
+         ========================================== -->
+    <section id="how-it-works">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal">How El Agénte Thinks</h2>
+            <p class="lead reveal reveal-delay-1" style="margin: 0 auto;">
+                Like a transformer's attention mechanism, El Agénte focuses on what matters most.
+            </p>
+
+            <div class="attention-viz reveal reveal-delay-2">
+                <div class="attention-flow">
+                    <div class="attention-node source">🚨 Alert</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node agent">🧠 Agent</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node tool">📊 Logs</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node agent">🧠 Agent</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node tool">📈 Metrics</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node agent">🧠 Agent</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node tool">🔗 Traces</div>
+                    <span class="attention-arrow">→</span>
+                    <div class="attention-node solution">✅ RCA</div>
+                </div>
+            </div>
+
+            <p class="reveal reveal-delay-3" style="margin: 2rem auto 0; font-size: 1.1rem;">
+                The agent <strong class="teal-text">iteratively refines its understanding</strong>,<br>
+                pulling only relevant context from your observability stack.
+            </p>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 7: ARCHITECTURE
+         ========================================== -->
+    <section id="architecture" style="background: var(--paper-dark);">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal">The Architecture</h2>
+            <p class="lead reveal reveal-delay-1" style="margin: 0 auto 2rem;">
+                Built on the Model Context Protocol for seamless tool integration
+            </p>
+
+            <div class="arch-grid reveal reveal-delay-2">
+                <div class="arch-card">
+                    <div class="arch-icon">🔌</div>
+                    <div class="arch-title">MCP Servers</div>
+                    <div class="arch-desc">Prometheus, Loki, Tempo integration. Pull metrics, logs, and traces on
+                        demand.</div>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon">🧠</div>
+                    <div class="arch-title">AI Core</div>
+                    <div class="arch-desc">Claude-powered reasoning engine with multi-step investigation capabilities.
+                    </div>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon">🔍</div>
+                    <div class="arch-title">Observability</div>
+                    <div class="arch-desc">MELT data integration — Metrics, Events, Logs, Traces unified in context.
+                    </div>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon">📋</div>
+                    <div class="arch-title">Output</div>
+                    <div class="arch-desc">RCA reports, runbooks, Slack notifications, GitHub issues — automated.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 8: THE TRANSFORMATION
+         ========================================== -->
+    <section id="transformation">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal">The Transformation</h2>
+
+            <div class="comparison reveal reveal-delay-1">
+                <div class="comparison-side comparison-before">
+                    <div class="comparison-header">
+                        <span>❌</span> Before El Agénte
+                    </div>
+                    <ul class="comparison-list">
+                        <li>22 minutes of sleep inertia</li>
+                        <li>Manual dashboard navigation</li>
+                        <li>Log correlation by hand</li>
+                        <li>2.5+ hours MTTR</li>
+                        <li>₹23.25 crore revenue lost</li>
+                    </ul>
+                </div>
+                <div class="comparison-side comparison-after">
+                    <div class="comparison-header">
+                        <span>✓</span> After El Agénte
+                    </div>
+                    <ul class="comparison-list">
+                        <li>Instant investigation start</li>
+                        <li>Automated context curation</li>
+                        <li>AI-powered correlation</li>
+                        <li>~3 minutes to RCA</li>
+                        <li>₹4.65 lakh (97% reduction)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 9: IMPACT NUMBERS
+         ========================================== -->
+    <section id="impact" class="dark-section">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal">The Impact</h2>
+
+            <div class="impact-container reveal reveal-delay-1">
+                <div class="impact-box impact-before">
+                    <div class="impact-number">₹23.25Cr</div>
+                    <div class="impact-label" style="color: rgba(255,255,255,0.6);">Traditional Response</div>
+                </div>
+                <div class="impact-vs">vs</div>
+                <div class="impact-box impact-after">
+                    <div class="impact-number">₹4.65L</div>
+                    <div class="impact-label" style="color: rgba(255,255,255,0.6);">With El Agénte</div>
+                </div>
+            </div>
+
+            <div class="reveal reveal-delay-2 mt-3">
+                <p
+                    style="font-size: 2rem; color: var(--accent-coral); font-family: var(--font-display); font-weight: 700;">
+                    50x Cost Reduction
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 10: LIVE DEMO FLOW
+         ========================================== -->
+    <section id="demo" style="background: var(--paper-dark);">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal">Live in Action</h2>
+            <p class="lead reveal reveal-delay-1" style="margin: 0 auto 2rem;">
+                The complete investigation flow, automated end-to-end.
+            </p>
+
+            <div class="demo-flow reveal reveal-delay-2">
+                <div class="demo-step">
+                    <div class="demo-icon error">🚨</div>
+                    <div class="demo-label">Error</div>
+                </div>
+                <div class="demo-connector"></div>
+                <div class="demo-step">
+                    <div class="demo-icon logs">📜</div>
+                    <div class="demo-label">Logs</div>
+                </div>
+                <div class="demo-connector"></div>
+                <div class="demo-step">
+                    <div class="demo-icon alert">⚠️</div>
+                    <div class="demo-label">Alert</div>
+                </div>
+                <div class="demo-connector"></div>
+                <div class="demo-step active">
+                    <div class="demo-icon brain">🧠</div>
+                    <div class="demo-label">Brain</div>
+                </div>
+                <div class="demo-connector"></div>
+                <div class="demo-step">
+                    <div class="demo-icon done">✅</div>
+                    <div class="demo-label">Done</div>
+                </div>
+            </div>
+
+            <p class="reveal reveal-delay-3 mt-2" style="font-size: 1rem; color: var(--ink-light);">
+                Error → Logs collected → Alert triggered → Agent investigates → RCA delivered
+            </p>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 11: REMEMBER
+         ========================================== -->
+    <section id="remember" class="dark-section">
+        <div class="content-wrapper text-center">
+            <h2 class="reveal" style="font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 500;">
+                Remember this the next time<br>
+                <span style="color: var(--accent-coral); font-weight: 800;">your pager goes off at 2 AM</span>
+            </h2>
+
+            <div class="final-stats reveal reveal-delay-1 mt-3">
+                <div class="final-stat">
+                    <div class="final-stat-number">$5,600</div>
+                    <div class="final-stat-label">Cost per minute of downtime</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-number">4+ hrs</div>
+                    <div class="final-stat-label">Average incident resolution</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-number">22 min</div>
+                    <div class="final-stat-label">Human cognitive wake-up time</div>
+                </div>
+            </div>
+
+            <p class="lead reveal reveal-delay-2 mt-3" style="margin: 0 auto; color: rgba(255,255,255,0.9);">
+                El Agénte starts investigating <strong style="color: var(--accent-coral);">immediately</strong>.<br>
+                No sleep inertia. No context switching. No human error.
+            </p>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         SECTION 12: THANK YOU
+         ========================================== -->
+    <section id="thanks">
+        <div class="content-wrapper text-center">
+            <div class="reveal hero-logo" style="margin: 0 auto;">
+                <video autoplay loop muted playsinline>
+                    <source src="animated-logo.mp4" type="video/mp4">
+                </video>
+            </div>
+
+            <h1 class="reveal reveal-delay-1 mt-2" style="font-size: clamp(3rem, 7vw, 6rem);">El Agénte</h1>
+
+            <p class="reveal reveal-delay-2 hero-tagline" style="font-size: 1.5rem;">
+                The AI that never sleeps
+            </p>
+
+            <div class="reveal reveal-delay-3 mt-3">
+                <p class="lead" style="color: var(--ink-light); margin: 0 auto;">
+                    Semi-Finals Presentation<br>
+                    December 12, 2025
+                </p>
+            </div>
+
+            <div class="reveal reveal-delay-4 mt-3">
+                <span class="cta-button" style="cursor: default;">Questions?</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================
+         JAVASCRIPT
+         ======================================== -->
+    <script>
+        // Scroll Progress Bar
+        function updateProgressBar() {
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        window.addEventListener('scroll', updateProgressBar);
+
+        // Reveal on Scroll
+        function reveal() {
+            const reveals = document.querySelectorAll('.reveal');
+
+            reveals.forEach(element => {
+                const windowHeight = window.innerHeight;
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 100;
+
+                if (elementTop < windowHeight - elementVisible) {
+                    element.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', reveal);
+        reveal(); // Initial check
+
+        // Counter Animation
+        function animateCounters() {
+            const counters = document.querySelectorAll('.counting');
+
+            counters.forEach(counter => {
+                const target = parseInt(counter.dataset.target);
+                const duration = 2000;
+                const step = target / (duration / 16);
+                let current = 0;
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting && current === 0) {
+                            const timer = setInterval(() => {
+                                current += step;
+                                if (current >= target) {
+                                    counter.textContent = target;
+                                    if (counter.dataset.suffix) {
+                                        counter.textContent += counter.dataset.suffix;
+                                    }
+                                    clearInterval(timer);
+                                } else {
+                                    counter.textContent = Math.floor(current);
+                                }
+                            }, 16);
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                observer.observe(counter);
+            });
+        }
+
+        animateCounters();
+
+        // Smooth scroll for any internal links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Terminal animation restart on scroll into view
+        const terminal = document.querySelector('.terminal');
+        if (terminal) {
+            const terminalObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const lines = terminal.querySelectorAll('.terminal-line');
+                        lines.forEach(line => {
+                            line.style.animation = 'none';
+                            line.offsetHeight; // Trigger reflow
+                            line.style.animation = null;
+                        });
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            terminalObserver.observe(terminal);
+        }
+
+        // Demo flow animation
+        function animateDemoFlow() {
+            const steps = document.querySelectorAll('.demo-step');
+            let currentStep = 0;
+
+            setInterval(() => {
+                steps.forEach((step, i) => {
+                    step.classList.remove('active');
+                });
+                steps[currentStep].classList.add('active');
+                currentStep = (currentStep + 1) % steps.length;
+            }, 1500);
+        }
+
+        // Start demo animation when in view
+        const demoSection = document.getElementById('demo');
+        if (demoSection) {
+            const demoObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateDemoFlow();
+                        demoObserver.disconnect();
+                    }
+                });
+            }, { threshold: 0.3 });
+
+            demoObserver.observe(demoSection);
+        }
+
+        // Keyboard navigation hint (for presenter)
+        console.log('🎬 Presentation ready! Scroll to navigate through sections.');
+    </script>
+</body>
+
+</html>

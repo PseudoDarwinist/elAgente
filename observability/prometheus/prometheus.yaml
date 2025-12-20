@@ -1,0 +1,36 @@
+# Prometheus Configuration for SRE Agent
+# Purpose: Collect metrics from applications and receive metrics from Tempo
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: sre-agent-local
+
+# Alerting configuration (uses Grafana for alerts, not Alertmanager)
+alerting:
+  alertmanagers: []
+
+scrape_configs:
+  # Prometheus self-metrics
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Aura Backend application metrics
+  - job_name: 'aura-backend'
+    static_configs:
+      - targets: ['aura-backend:4000']
+    metrics_path: '/metrics'
+    honor_labels: true
+
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+

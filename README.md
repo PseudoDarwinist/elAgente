@@ -1,789 +1,499 @@
-<h1 align="center">
-    🚀 Site Reliability Engineer (SRE) Agent :detective:
-</h1>
+# 🤖 el Agénte - AI-Powered SRE Agent
 
-Welcome to the **SRE Agent** project! This AI agent assists with debugging, keeps your systems healthy, and makes your DevOps life easier. Plug in your Kubernetes cluster, GitHub repo, and Slack, and let the agent do the heavy lifting—diagnosing, reporting, and keeping your team in the loop.
+> **Autonomous Incident Response System with Topology-Aware Investigation**
 
-## 🌟 What is SRE Agent?
+[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](http://localhost:3001)
+[![Claude SDK](https://img.shields.io/badge/Claude-Agent%20SDK-purple)](https://docs.anthropic.com/claude/claude-agent-sdk)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-blue)](https://github.com/modelcontextprotocol)
 
-SRE Agent is your AI-powered teammate for monitoring application and infrastructure logs, diagnosing issues, and reporting diagnostics after errors. It connects directly into your stack, so you can focus on building, not firefighting.
+---
 
-## 🤔 Why This Project?
+## 🌟 What is el Agénte?
 
-This project explores best practices, costs, security, and performance considerations for AI agents in production. Check out the [Production Journey Page](/docs/production-journey.md) and [Agent Architecture Page](/docs/agent-architecture.md) for more details.
+**el Agénte** is an AI-powered SRE (Site Reliability Engineering) agent that **automatically detects production errors, investigates root causes, and creates actionable documentation—all in under 2 minutes**.
 
-## ✨ Features
+### The Problem We Solve
 
-- 🕵️‍♂️ **Root Cause Debugging** – Finds the real reason behind app and system errors
-- 📜 **Kubernetes Logs** – Queries your cluster for logs and info
-- 🔍 **GitHub Search** – Digs through your codebase for bugs
-- 💬 **Slack Integration** – Notifies and updates your team
-- 🚦 **Diagnose from Anywhere** – Trigger diagnostics with a simple endpoint
+> "Every minute of downtime costs $5,600. Traditional monitoring tells you WHAT failed, not WHY."
 
-> Powered by the [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) for seamless LLM-to-tool connectivity.
+When something breaks at 3 AM:
+- Engineers spend **70% of incident time** just gathering context
+- Average MTTR (Mean Time To Recovery) is **60+ minutes**
+- Multiple services affected—but which one is the root cause?
 
-## 🤖 Supported LLM Providers
+### Our Solution
 
-The SRE Agent supports multiple the following LLM providers:
+el Agénte investigates like a **senior SRE engineer**:
+1. 🗺️ **Discovers Topology** - Understands service dependencies before investigating
+2. 🔍 **Gathers Targeted Evidence** - Only queries affected services, not the entire system
+3. 🧠 **Forms Hypotheses** - Uses AI reasoning to identify root cause
+4. ⚡ **Takes Action** - Posts to Slack, creates GitHub issues, generates runbooks
 
-### Anthropic
-- **Models**: e.g. "claude-4-0-sonnet-latest"
-- **Setup**: Requires `ANTHROPIC_API_KEY`
+**Result**: MTTR from hours to minutes. Complete RCA documentation. No more 3 AM wake-up calls.
 
-### Google Gemini
-- **Models**: e.g, "gemini-2.5-flash"
-- **Setup**: Requires `GEMINI_API_KEY`
+---
 
+## 🎥 Quick Demo
 
-## 🛠️ Prerequisites
+![SRE Dashboard Demo](docs/imgs/dashboard_demo.gif)
 
-- [Docker](https://docs.docker.com/get-docker/)
-- A `.env` file in your project root ([see below](#getting-started))
-- **Option A**: An app deployed on AWS EKS or GCP GKE (Kubernetes)
-- **Option B**: Any app that can write logs to a file (No Kubernetes required!)
+1. **Inject a fault** into the demo e-commerce app
+2. **Watch the agent** detect the error, discover topology, and investigate
+3. **See the diagnosis** with root cause, confidence level, and runbook
 
-## ⚡ Quick Start (5 minutes)
+---
 
-### 1️⃣ Set up credentials
-```bash
-python setup_credentials.py --platform aws  # or --platform gcp
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            YOUR BROWSER                                      │
+│  ┌─────────────────────┐     ┌─────────────────────┐                        │
+│  │   Aura E-Commerce   │     │    SRE Dashboard    │                        │
+│  │   localhost:8080    │     │   localhost:3001    │                        │
+│  └─────────────────────┘     └─────────────────────┘                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                │                           │
+                ▼                           ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         DOCKER CONTAINERS                                    │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                     OBSERVABILITY STACK                                │  │
+│  │   Loki (3100)  │  Grafana (3000)  │  Prometheus (9090)  │  Tempo       │  │
+│  │   Log Storage     Alerting          Metrics               Tracing      │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                        MCP SERVERS                                     │  │
+│  │   Loki MCP (3103)  │  Slack (3101)  │  GitHub (3102)  │  Topology    │  │
+│  │   Log Queries         Notifications    Issue Creation    Discovery    │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                        ORCHESTRATOR                                    │  │
+│  │                        localhost:8003                                  │  │
+│  │                   Receives alerts, coordinates agent                   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    LOCAL (NOT DOCKER)                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                     AGENT WORKER (localhost:3005)                      │  │
+│  │     Claude Agent SDK + Pro Subscription via ~/.claude/ credentials     │  │
+│  │     AI-powered investigation, multi-step reasoning, tool orchestration │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2️⃣ Configure cloud access
-**AWS:** Add credentials to `~/.aws/credentials` | **GCP:** Run `gcloud auth login`
+> ⚠️ **Important**: The Agent Worker MUST run locally (not in Docker) to access Claude CLI credentials from `~/.claude/`
 
-### 3️⃣ Deploy with pre-built images (fastest!)
+---
+
+## 📋 Prerequisites
+
+Before you begin, make sure you have:
+
+| Requirement | Version | Check Command |
+|-------------|---------|---------------|
+| **Docker Desktop** | Latest | `docker --version` |
+| **Node.js** | 20+ | `node --version` |
+| **npm** | 10+ | `npm --version` |
+| **Claude CLI** | Latest | `claude --version` |
+
+### Setting up Claude CLI
+
+The agent uses your Claude Pro subscription via the CLI. If you haven't set it up:
+
 ```bash
-# AWS ECR (recommended)
-aws ecr get-login-password --region [YOUR_REGION] | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.[YOUR_REGION].amazonaws.com
-docker compose -f compose.ecr.yaml up -d
+# Install Claude CLI (if not installed)
+npm install -g @anthropic-ai/claude-cli
 
-# OR GCP GAR
-gcloud auth configure-docker [YOUR_REGION]-docker.pkg.dev
-docker compose -f compose.gar.yaml up -d
-```
+# Authenticate (opens browser)
+claude auth login
 
-### 4️⃣ Test it works
-```bash
-curl -X POST http://localhost:8003/diagnose \
-  -H "Authorization: Bearer $(grep DEV_BEARER_TOKEN .env | cut -d'=' -f2)" \
-  -d '{"text": "your-service-name"}'
+# Verify credentials exist
+ls ~/.claude/
 ```
 
 ---
 
-## 📋 Detailed Setup Guide
+## 🚀 Quick Start (5 Minutes)
 
-<details>
-<summary>🔧 Step-by-step credential configuration</summary>
-
-### Interactive Credential Setup
-
-Use our interactive setup script to configure your credentials:
+### Step 1: Clone and Navigate
 
 ```bash
-python setup_credentials.py
+git clone https://github.com/PseudoDarwinist/elAgente.git
+cd elAgente
 ```
 
-The script will:
-- ✅ Auto-detect your platform (AWS/GCP) or let you choose
-- ✅ Guide you through credential setup with helpful prompts
-- ✅ Show current values and let you update them
-- ✅ Create your `.env` file automatically
-
-**Quick start with platform selection:**
-```bash
-python setup_credentials.py --platform aws
-# or
-python setup_credentials.py --platform gcp
-```
-
-### Manual Cloud Credential Setup
-
-#### For AWS EKS:
-1. Go to your AWS access portal and grab your access keys:
-   ![key](./docs/imgs/running_locally/access_key.png)
-2. Choose Option 2 and copy credentials into `~/.aws/credentials`:
-   ![option_2](./docs/imgs/running_locally/option_2.png)
-
-   ```bash
-   [default]
-   aws_access_key_id=ABCDEFG12345
-   aws_secret_access_key=abcdefg123456789
-   aws_session_token=abcdefg123456789....=
-   ```
-
-#### For GCP GKE:
-Set up your GCP credentials using the gcloud CLI:
-```bash
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
-```
-
-</details>
-
-## 🚀 Deployment Options
-
-### **Recommended: Pre-built Registry Images (2-5 minutes)**
-
-Use pre-built container images for the fastest deployment:
-
-**AWS ECR (Fastest):**
-```bash
-# Authenticate with ECR
-aws ecr get-login-password --region [YOUR_REGION] | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.[YOUR_REGION].amazonaws.com
-
-# Deploy with pre-built images
-docker compose -f compose.ecr.yaml up -d
-```
-
-**GCP GAR:**
-```bash
-# Authenticate with GAR
-gcloud auth configure-docker [YOUR_REGION]-docker.pkg.dev
-
-# Deploy with pre-built images
-docker compose -f compose.gar.yaml up -d
-```
-
-### **Alternative: Local Build (20-30 minutes)**
-
-If you need to build from source or modify the code:
-
-**For AWS:**
-```bash
-docker compose -f compose.aws.yaml up --build
-```
-
-**For GCP:**
-```bash
-docker compose -f compose.gcp.yaml up --build
-```
-
-### **For Developers: Building and Pushing New Images**
-
-If you're developing features or need to create new registry images:
-
-**Build and Push to AWS ECR:**
-```bash
-# Build and push all services to ECR
-./build_push_docker.sh --aws
-
-# Or set environment variables and run manually
-export AWS_REGION=your-region
-export AWS_ACCOUNT_ID=your-account-id
-./build_push_docker.sh --aws
-```
-
-**Build and Push to GCP GAR:**
-```bash
-# Build and push all services to GAR
-./build_push_docker.sh --gcp
-
-# Or set environment variables and run manually
-export CLOUDSDK_COMPUTE_REGION=your-region
-export CLOUDSDK_CORE_PROJECT=your-project-id
-./build_push_docker.sh --gcp
-```
-
-**What the build script does:**
-- Builds all 7 microservices with `--platform linux/amd64` for consistency
-- Tags images with `:dev` for development or `:latest` for production
-- Pushes to your configured registry (ECR or GAR)
-- **Takes 15-20 minutes** but only needs to be done once per code change
-
-**After pushing new images, use them with:**
-```bash
-# Pull your new images and deploy
-docker compose -f compose.ecr.yaml pull
-docker compose -f compose.ecr.yaml up -d
-```
-
-> **Note:** AWS credentials must be in your `~/.aws/credentials` file.
-
-You'll see logs like this when everything's running:
+### Step 2: Start Docker Services
 
 ```bash
-orchestrator-1   |    FastAPI   Starting production server 🚀
-orchestrator-1   |
-orchestrator-1   |              Searching for package file structure from directories with
-orchestrator-1   |              __init__.py files
-kubernetes-1     | ✅ Kubeconfig updated successfully.
-kubernetes-1     | 🚀 Starting Node.js application...
-orchestrator-1   |              Importing from /
-orchestrator-1   |
-orchestrator-1   |     module   📁 app
-orchestrator-1   |              ├── 🐍 __init__.py
-orchestrator-1   |              └── 🐍 client.py
-orchestrator-1   |
-orchestrator-1   |       code   Importing the FastAPI app object from the module with the following
-orchestrator-1   |              code:
-orchestrator-1   |
-orchestrator-1   |              from app.client import app
-orchestrator-1   |
-orchestrator-1   |        app   Using import string: app.client:app
-orchestrator-1   |
-orchestrator-1   |     server   Server started at http://0.0.0.0:80
-orchestrator-1   |     server   Documentation at http://0.0.0.0:80/docs
-orchestrator-1   |
-orchestrator-1   |              Logs:
-orchestrator-1   |
-orchestrator-1   |       INFO   Started server process [1]
-orchestrator-1   |       INFO   Waiting for application startup.
-orchestrator-1   |       INFO   Application startup complete.
-orchestrator-1   |       INFO   Uvicorn running on http://0.0.0.0:80 (Press CTRL+C to quit)
-kubernetes-1     | 2025-04-24 12:53:00 [info]: Initialising Kubernetes manager {
-kubernetes-1     |   "service": "kubernetes-server"
-kubernetes-1     | }
-kubernetes-1     | 2025-04-24 12:53:00 [info]: Kubernetes manager initialised successfully {
-kubernetes-1     |   "service": "kubernetes-server"
-kubernetes-1     | }
-kubernetes-1     | 2025-04-24 12:53:00 [info]: Starting SSE server {
-kubernetes-1     |   "service": "kubernetes-server"
-kubernetes-1     | }
-kubernetes-1     | 2025-04-24 12:53:00 [info]: mcp-kubernetes-server is listening on port 3001
-kubernetes-1     | Use the following url to connect to the server:
-kubernetes-1     | http://localhost:3001/sse {
-kubernetes-1     |   "service": "kubernetes-server"
-kubernetes-1     | }
-```
-
-This means all the services — Slack, GitHub, the orchestrator, the prompt and the MCP servers have started successfully and are ready to handle requests.
-
-## 🧑‍💻 Using the Agent
-
-Trigger a diagnosis with a simple curl command:
-
-```bash
-curl -X POST http://localhost:8003/diagnose \
-  -H "accept: application/json" \
-  -H "Authorization: Bearer <token>" \
-  -d "text=<service>"
-```
-
-- Replace `<token>` with your dev bearer token (from `.env`)
-- Replace `<service>` with the name of your target Kubernetes service
-
-The agent will do its thing and report back in your configured Slack channel 🎉
-
-<details>
-<summary>🩺 Checking Service Health</summary>
-
-A `/health` endpoint is available on the orchestrator service:
-
-```bash
-curl -X GET http://localhost:8003/health
-```
-
-- `200 OK` = All systems go!
-- `503 Service Unavailable` = Something's up; check the response for details.
-
-</details>
-
-<details>
-<summary>🔧 Deployment Troubleshooting</summary>
-
-**Common Issues:**
-
-**ECR Authentication Errors:**
-```bash
-# Ensure your AWS region matches your .env file
-aws configure get region
-# Should match AWS_REGION in your .env file
-
-# Re-authenticate with ECR if login fails
-aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin $(aws sts get-caller-identity --query Account --output text).dkr.ecr.eu-west-2.amazonaws.com
-```
-
-**Image Pull Errors:**
-- Check that `AWS_ACCOUNT_ID` and `AWS_REGION` in your `.env` file match your actual AWS account
-- Ensure you have ECR permissions in your AWS IAM role
-- For missing images, the build-and-push script can create them: `./build_push_docker.sh --aws`
-
-**Long Build Times:**
-- Use pre-built registry images (`compose.ecr.yaml` or `compose.gar.yaml`) instead of local builds
-- Registry deployment takes 2-5 minutes vs 20-30 minutes for local builds
-
-</details>
-
-## 🚀 Deployments
-
-Cloud deployment options are available for production use cases.
-
----
-
-## 🔧 For Developers
-
-<details>
-<summary>📦 Development Workflow</summary>
-
-### Project Structure
-This is a uv workspace with multiple Python services and TypeScript MCP servers:
-- `sre_agent/client/`: FastAPI orchestrator (Python)
-- `sre_agent/llm/`: LLM service with multi-provider support (Python)
-- `sre_agent/firewall/`: Llama Prompt Guard security layer (Python)
-- `sre_agent/servers/mcp-server-kubernetes/`: Kubernetes operations (TypeScript)
-- `sre_agent/servers/github/`: GitHub API integration (TypeScript)
-- `sre_agent/servers/slack/`: Slack notifications (TypeScript)
-- `sre_agent/servers/prompt_server/`: Structured prompts (Python)
-
-### Development Commands
-```bash
-make project-setup    # Install uv, create venv, install pre-commit hooks
-make check            # Run linting, pre-commit hooks, and lock file check
-make tests            # Run pytest with coverage
-make license-check    # Verify dependency licenses
-```
-
-### Building Custom Images
-```bash
-# Build and push to your registry
-./build_push_docker.sh --aws    # for AWS ECR
-./build_push_docker.sh --gcp    # for GCP GAR
-
-# Use your custom images
-docker compose -f compose.ecr.yaml pull
-docker compose -f compose.ecr.yaml up -d
-```
-
-### TypeScript MCP Servers
-```bash
-# Kubernetes MCP server
-cd sre_agent/servers/mcp-server-kubernetes
-npm run build && npm run test
-
-# GitHub/Slack MCP servers
-cd sre_agent/servers/github  # or /slack
-npm run build && npm run watch
-```
-
-</details>
-
-## 📚 Documentation
-
-Find all the docs you need in the [docs](docs) folder:
-
-- **[Executive Overview](docs/EXECUTIVE_OVERVIEW.md)** - Architecture, system design, and business value
-- [Agent Architecture](docs/agent-architecture.md)
-- [Production Journey](docs/production-journey.md)
-- [Credentials](docs/credentials.md)
-- [Creating an IAM Role](docs/creating-an-iam-role.md)
-- [ECR Setup Steps](docs/ecr-setup.md)
-- [Security Testing](docs/security-testing.md)
-
----
-
-## 🖥️ Local Development Setup (No Kubernetes)
-
-Don't use Kubernetes? No problem! You can connect **any application** to the SRE Agent using file-based logging.
-
-### Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  YOUR APP (React, Node, Python, etc.)                           │
-│                                                                 │
-│  Error occurs → Logger catches → POST to Log Server             │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  LOG SERVER (Express, port 4000)                                │
-│                                                                 │
-│  Receives POST → Writes JSON to ./logs/app/app.log              │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  PROMTAIL (Docker)                                              │
-│                                                                 │
-│  Watches log file → Ships new lines to Loki                     │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  LOKI (Docker, localhost:3100)                                  │
-│                                                                 │
-│  Stores logs → Makes them queryable                             │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  GRAFANA (Docker, localhost:3000)                               │
-│                                                                 │
-│  Every 1 min: "Any errors?" → YES → Fire webhook to SRE Agent  │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  SRE AGENT (Docker, localhost:8003)                             │
-│                                                                 │
-│  Receives alert → Asks AI → AI searches GitHub → Posts to Slack │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  SLACK                                                          │
-│                                                                 │
-│  📣 "Here's what went wrong and how to fix it"                  │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Step 1: Add Logging to Your App
-
-#### For JavaScript/React Apps
-
-Create a log server (`server/logger.js`):
-
-```javascript
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import cors from 'cors';
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const LOG_DIR = './logs/app';
-const LOG_FILE = path.join(LOG_DIR, 'app.log');
-
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-}
-
-app.post('/log', (req, res) => {
-  const { level, message, stack, service } = req.body;
-  const logEntry = JSON.stringify({
-    ts: new Date().toISOString(),
-    level: level || 'error',
-    service: service || 'myapp',
-    msg: message,
-    stack: stack || ''
-  }) + '\n';
-  
-  fs.appendFileSync(LOG_FILE, logEntry);
-  res.json({ status: 'logged' });
-});
-
-app.listen(4000, () => console.log('Log server on :4000'));
-```
-
-Create a frontend logger (`src/utils/logger.js`):
-
-```javascript
-const LOG_SERVER = 'http://localhost:4000/log';
-
-export const logger = {
-  error: (message, error) => {
-    console.error(message, error);
-    fetch(LOG_SERVER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        level: 'error',
-        message: message,
-        stack: error?.stack || '',
-        service: 'myapp'
-      })
-    }).catch(() => {});
-  }
-};
-
-// Global error handlers
-window.onerror = (message, source, lineno, colno, error) => {
-  logger.error(`${message} at ${source}:${lineno}:${colno}`, error);
-};
-
-window.onunhandledrejection = (event) => {
-  logger.error('Unhandled Promise rejection', event.reason);
-};
-```
-
-#### For Python Apps
-
-```python
-import json
-import logging
-from datetime import datetime
-from pathlib import Path
-
-LOG_DIR = Path('./logs/app')
-LOG_DIR.mkdir(parents=True, exist_ok=True)
-
-class JSONFileHandler(logging.Handler):
-    def emit(self, record):
-        log_entry = {
-            'ts': datetime.utcnow().isoformat() + 'Z',
-            'level': record.levelname.lower(),
-            'service': 'myapp',
-            'msg': record.getMessage(),
-            'stack': record.exc_text or ''
-        }
-        with open(LOG_DIR / 'app.log', 'a') as f:
-            f.write(json.dumps(log_entry) + '\n')
-
-logger = logging.getLogger('myapp')
-logger.addHandler(JSONFileHandler())
-logger.setLevel(logging.ERROR)
-
-# Usage
-try:
-    risky_operation()
-except Exception as e:
-    logger.exception('Operation failed')
-```
-
-### Step 2: Configure Promtail
-
-Update `observability/promtail/promtail.yaml` to watch your app's logs:
-
-```yaml
-scrape_configs:
-  - job_name: myapp-logs
-    static_configs:
-      - targets: [localhost]
-        labels:
-          job: myapp
-          service: myapp
-          env: dev
-          __path__: /var/log/myapp/*.log
-```
-
-Mount your logs in `compose.observability.yaml`:
-
-```yaml
-promtail:
-  volumes:
-    - ./observability/promtail/promtail.yaml:/etc/promtail/promtail.yaml:ro
-    - /path/to/your/app/logs/app:/var/log/myapp:ro  # ADD THIS
-```
-
-### Step 3: Configure Grafana Alerting
-
-Add alert rule in `observability/grafana/provisioning/alerting/rules.yaml`:
-
-```yaml
-groups:
-  - orgId: 1
-    name: myapp-errors
-    folder: Alerts
-    interval: 1m
-    rules:
-      - uid: myapp-any-error
-        title: MyApp Error
-        condition: C
-        for: 0m
-        data:
-          - refId: A
-            datasourceUid: -100
-            model:
-              expr: sum(count_over_time({service="myapp", level="error"}[5m]))
-              queryType: range
-              refId: A
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              expression: A > 0
-              type: math
-              refId: C
-        annotations:
-          summary: "Error detected in myapp"
-        labels:
-          service: myapp
-```
-
-### Step 4: Update Environment Variables
-
-```bash
-# .env
-GITHUB_ORGANISATION="your-github-org"
-GITHUB_REPO_NAME="your-repo-name"
-SERVICES='["myapp"]'
-```
-
-### Step 5: Start Everything
-
-```bash
-# Terminal 1: Start your app (with log server)
-cd /path/to/your/app
-npm run start  # or python app.py
-
-# Terminal 2: Start observability stack
-cd /path/to/sre-agent
-docker compose -f compose.observability.yaml up -d
-
-# Terminal 3: Start SRE agent
+# Start all infrastructure containers
 docker compose -f compose.local.yaml up -d
 ```
 
-### Step 6: Test the Pipeline
+Wait for all containers to be healthy (~30 seconds):
+```bash
+docker compose -f compose.local.yaml ps
+```
+
+### Step 3: Start Agent Worker (LOCAL - Required!)
+
+Open a **new terminal** and run:
 
 ```bash
-# Check logs are being collected
-curl -s -G "http://localhost:3100/loki/api/v1/query_range" \
-  --data-urlencode 'query={service="myapp"}' | jq '.data.result[0].values'
+cd sre_agent/agent-worker
 
-# Trigger manual diagnosis
-curl -X POST http://localhost:8003/diagnose \
-  -H "Authorization: Bearer $DEV_BEARER_TOKEN" \
-  -d "text=myapp"
+# Install dependencies (first time only)
+npm install
 
-# Check Grafana
-open http://localhost:3000  # Login: admin/admin
+# Start the agent worker
+LOKI_MCP_URL=http://localhost:3103/sse \
+SLACK_MCP_URL=http://localhost:3101/sse \
+GITHUB_MCP_URL=http://localhost:3102/sse \
+PORT=3005 npx tsx src/index.ts
 ```
 
----
-
-## 🔄 How It All Works (Step-by-Step)
-
-Here's exactly what happens when an error occurs in your app:
-
-### Step 1: Error Happens in Your App
-
-A user does something that causes an error:
-
-```javascript
-const handleClick = () => {
-  const data = null;
-  console.log(data.name);  // 💥 ERROR: Cannot read property 'name' of null
-};
+You should see:
+```
+[Agent Worker] Claude Agent SDK worker listening on port 3005
+[Agent Worker] MCP Servers (Topology-Aware):
+  - Loki: http://localhost:3103/sse
+  - Slack: http://localhost:3101/sse
+  - GitHub: http://localhost:3102/sse
 ```
 
-### Step 2: Logger Catches the Error
+### Step 4: Start SRE Dashboard
 
-Your global error handler catches it:
-
-```javascript
-window.onerror = (message, source, lineno, colno, error) => {
-  // Sends to log server
-  fetch('http://localhost:4000/log', {
-    method: 'POST',
-    body: JSON.stringify({
-      level: 'error',
-      message: 'Cannot read property name of null',
-      stack: 'at handleClick (App.jsx:15)',
-      service: 'myapp'
-    })
-  });
-};
-```
-
-### Step 3: Log Server Writes to File
-
-The log server writes a JSON line:
-
-```json
-{"ts":"2025-11-29T16:15:00Z","level":"error","service":"myapp","msg":"Cannot read property name of null","stack":"at handleClick (App.jsx:15)"}
-```
-
-To file: `./logs/app/app.log`
-
-### Step 4: Promtail Ships to Loki
-
-Promtail watches the file and ships new lines:
-
-```
-[Promtail] Found new log line in /var/log/myapp/app.log
-[Promtail] Shipping to Loki with labels: {service="myapp", job="myapp"}
-```
-
-### Step 5: Grafana Checks for Errors
-
-Every 1 minute, Grafana runs this query:
-
-```
-count_over_time({service="myapp", level="error"}[5m]) > 0
-```
-
-Translation: "Were there any error logs from myapp in the last 5 minutes?"
-
-**If YES** → Alert fires!
-
-### Step 6: Grafana Calls SRE Agent
-
-Grafana sends a webhook:
+Open **another terminal** and run:
 
 ```bash
-POST http://orchestrator:80/alerts
-{
-  "title": "MyApp Error",
-  "service": "myapp",
-  "annotations": {
-    "summary": "Error detected in myapp"
-  }
-}
+cd sre-dashboard
+
+# Install dependencies (first time only)
+npm install
+
+# Start the dashboard
+npm run dev
 ```
 
-### Step 7: SRE Agent Asks AI to Diagnose
+### Step 5: Access the Applications
 
-The orchestrator:
+| Application | URL | Purpose |
+|-------------|-----|---------|
+| **SRE Dashboard** | http://localhost:3001 | Agent visualization & investigation UI |
+| **Aura E-Commerce** | http://localhost:8080 | Demo app with fault injection |
+| **Grafana** | http://localhost:3000 | Alerting & log dashboards |
+| **Prometheus** | http://localhost:9090 | Metrics explorer |
 
-1. **Queries past incidents** (RAG) - "Have we seen this before?"
-2. **Sends to LLM** with context:
+---
 
-```
-You are an SRE agent. Diagnose this error:
-- Service: myapp
-- Error: Cannot read property name of null at handleClick (App.jsx:15)
+## 🧪 Running a Demo
 
-Use these tools: get_file_contents, search_code, create_issue, slack_post_message
-```
+### Option 1: Use the Dashboard Button
 
-### Step 8: AI Searches Your Code
+1. Open http://localhost:3001
+2. Click **"START DEMO - Inject fault & open shop"** button
+3. Watch the investigation unfold in real-time!
 
-The AI calls the GitHub MCP server:
+### Option 2: Manual Fault Injection
 
-```
-[AI] I need to see App.jsx to understand the error
-[Calling tool get_file_contents with args: {path: "src/App.jsx"}]
-```
+```bash
+# Inject 100% checkout error rate
+curl -X POST http://localhost:4000/api/admin/fault \
+  -H "Content-Type: application/json" \
+  -d '{"error_rate": 1.0}'
 
-GitHub MCP fetches the file from your repository.
+# The agent will automatically detect and investigate the fault!
 
-### Step 9: AI Finds the Bug
-
-AI analyzes the code:
-
-```javascript
-// Line 15 in App.jsx
-const handleClick = () => {
-  const data = null;        // ← AI sees this
-  console.log(data.name);   // ← AI identifies: accessing .name on null
-};
+# Clear the fault when done
+curl -X POST http://localhost:4000/api/admin/fault \
+  -H "Content-Type: application/json" \
+  -d '{"error_rate": 0}'
 ```
 
-AI diagnosis:
-> "Root cause: `data` is null but code tries to access `data.name`. 
-> Fix: Add null check `if (data) { console.log(data.name) }`"
+### What Happens During Investigation
 
-### Step 10: Results Posted to Slack
+1. **ERROR** → Aura backend starts generating 503 errors
+2. **LOGS** → Promtail ships error logs to Loki
+3. **ALERT** → Grafana detects errors and fires webhook to orchestrator
+4. **BRAIN** → Agent Worker investigates:
+   - Discovers service topology
+   - Gathers targeted logs
+   - Forms hypothesis
+   - Generates runbook
+5. **DONE** → Results posted to Slack and GitHub
 
-AI calls the Slack MCP server and you see:
+---
 
+## 📊 Service Architecture
+
+### Docker Services (`compose.local.yaml`)
+
+| Container | Port | Purpose | Health Check |
+|-----------|------|---------|--------------|
+| `aura-backend` | 4000 | E-commerce API with fault injection | ✅ |
+| `aura-frontend` | 8080 | React storefront | ✅ |
+| `loki` | 3100 | Log storage database | ✅ |
+| `promtail` | - | Ships logs to Loki | ✅ |
+| `grafana` | 3000 | Alerting & dashboards | ✅ |
+| `orchestrator` | 8003 | SRE Agent API | ✅ |
+| `loki-mcp` | 3103 | MCP server for log queries | ✅ |
+| `slack` | 3101 | MCP server for Slack posts | ✅ |
+| `github` | 3102 | MCP server for GitHub issues | ✅ |
+| `prometheus` | 9090 | Metrics collection | ✅ |
+| `tempo` | 3200 | Distributed tracing | ⚠️ Optional |
+
+### Local Services (Must Run Manually)
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| `agent-worker` | 3005 | Claude Agent SDK (uses ~/.claude/) |
+| `sre-dashboard` | 3001 | Next.js real-time dashboard |
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the project root (optional, has defaults):
+
+```bash
+# Slack Integration
+SLACK_BOT_TOKEN=xoxb-your-bot-token
+SLACK_TEAM_ID=T0123456789
+SLACK_CHANNEL_ID=C0123456789
+
+# GitHub Integration
+GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxx
+GITHUB_ORGANISATION=your-org
+GITHUB_REPO_NAME=your-repo
+
+# LLM Configuration (optional - uses Claude CLI by default)
+PROVIDER=anthropic
+MODEL=claude-4-0-sonnet-latest
+ANTHROPIC_API_KEY=sk-ant-api-key  # Only if not using CLI auth
 ```
-🔍 SRE Agent Diagnosis for myapp
 
-Error: Cannot read property 'name' of null
-File: src/App.jsx:15
+### MCP Server URLs
 
-Root Cause: The variable `data` is null when accessed.
+The agent-worker connects to MCP servers via SSE. When running locally:
 
-Suggested Fix:
-Add null check before accessing properties:
-if (data) { console.log(data.name) }
+```bash
+LOKI_MCP_URL=http://localhost:3103/sse
+SLACK_MCP_URL=http://localhost:3101/sse
+GITHUB_MCP_URL=http://localhost:3102/sse
+TOPOLOGY_MCP_URL=http://localhost:3104/sse      # Optional
+PROMETHEUS_MCP_URL=http://localhost:3105/sse    # Optional
 ```
 
 ---
 
-## 📊 Service URLs
+## 📁 Project Structure
 
-| Service | URL | Purpose |
-|---------|-----|----------|
-| SRE Agent | http://localhost:8003 | Main API |
-| Grafana | http://localhost:3000 | Dashboards & Alerts |
-| Loki | http://localhost:3100 | Log Storage |
-| Qdrant | http://localhost:6333 | RAG Vector DB |
+```
+sre-agent/
+├── README.md                  # This file
+├── compose.local.yaml         # Docker Compose for local development
+│
+├── aura-quiet-living/         # Demo E-Commerce Application
+│   ├── backend/
+│   │   ├── server.js          # Express API with fault injection
+│   │   └── logger.js          # Winston logging
+│   └── src/                   # React frontend
+│
+├── sre_agent/
+│   ├── client/
+│   │   └── client.py          # Orchestrator (FastAPI)
+│   │
+│   ├── agent-worker/          # 🧠 Claude Agent SDK Worker
+│   │   ├── src/index.ts       # Main agent logic
+│   │   └── package.json
+│   │
+│   └── servers/               # MCP Tool Servers
+│       ├── loki/              # Log queries
+│       ├── slack/             # Notifications
+│       ├── github/            # Issue creation
+│       ├── topology-server/   # Service dependencies
+│       └── prometheus-server/ # Health metrics
+│
+├── sre-dashboard/             # Real-time Dashboard (Next.js)
+│   └── src/app/
+│       ├── page.tsx           # Main page + SSE handling
+│       └── components/
+│           ├── PipelineFlow.tsx         # Investigation pipeline
+│           ├── ChainOfThought.tsx       # Agent reasoning steps
+│           ├── HypothesisPanel.tsx      # Diagnosis + Runbook
+│           ├── FaultPropagationChain.tsx # Fault impact visualization
+│           └── ServiceDependencyGraph.tsx # Topology map
+│
+├── observability/             # Monitoring Configuration
+│   ├── grafana/provisioning/  # Dashboards + Alert rules
+│   ├── loki/                  # Log aggregation config
+│   ├── prometheus/            # Metrics config
+│   └── promtail/              # Log shipping config
+│
+└── docs/                      # Documentation
+    ├── SYSTEM_DOCUMENTATION.md
+    ├── ARCHITECTURE.md
+    └── imgs/
+```
 
 ---
 
-## 🗺️ Roadmap
+## 🩺 Health Checks
 
-- Enhanced multi-cloud support
-- Additional LLM provider integrations
-- Advanced anomaly detection capabilities
-- Custom alerting rules and thresholds
+### Check All Services
+
+```bash
+# Docker containers
+docker compose -f compose.local.yaml ps
+
+# Orchestrator health
+curl http://localhost:8003/health
+
+# Agent worker health
+curl http://localhost:3005/health
+
+# Loki (logs)
+curl http://localhost:3100/ready
+
+# Grafana
+curl http://localhost:3000/api/health
+```
+
+### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| Port already in use | `lsof -i :PORT` → `kill -9 PID` |
+| Agent worker won't start | Check if `~/.claude/` exists (run `claude auth login`) |
+| No logs in Loki | Restart promtail: `docker compose restart promtail` |
+| Dashboard shows old data | Refresh browser + click "STOP" then "START DEMO" |
+| Tempo unhealthy | Non-critical, demo works without it |
+
+---
+
+## 🔌 API Endpoints
+
+### Orchestrator API (localhost:8003)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/health` | GET | Service health check |
+| `/diagnose` | POST | Start manual diagnosis |
+| `/alerts` | POST | Receive Grafana webhooks |
+| `/events/{run_id}` | GET | SSE event stream |
+| `/latest-run` | GET | Get current run status |
+
+### Agent Worker API (localhost:3005)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/health` | GET | Worker health check |
+| `/diagnose` | POST | Execute AI diagnosis |
+
+### Aura Backend API (localhost:4000)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/admin/fault` | POST | Inject/clear faults |
+| `/api/products` | GET | List products |
+| `/api/checkout` | POST | Process checkout (fault-injectable) |
+
+---
+
+## 🛠️ Development
+
+### Rebuild Docker Images
+
+```bash
+docker compose -f compose.local.yaml build --no-cache
+docker compose -f compose.local.yaml up -d
+```
+
+### View Logs
+
+```bash
+# All containers
+docker compose -f compose.local.yaml logs -f
+
+# Specific container
+docker compose -f compose.local.yaml logs -f orchestrator
+```
+
+### Restart Services
+
+```bash
+# Single service
+docker compose -f compose.local.yaml restart orchestrator
+
+# All services
+docker compose -f compose.local.yaml restart
+```
+
+### Stop Everything
+
+```bash
+# Stop containers (preserve data)
+docker compose -f compose.local.yaml stop
+
+# Stop and remove containers + volumes
+docker compose -f compose.local.yaml down -v
+```
+
+---
+
+## 📚 Additional Documentation
+
+| Document | Description |
+|----------|-------------|
+| [System Documentation](docs/SYSTEM_DOCUMENTATION.md) | Complete architecture & design decisions |
+| [Architecture](docs/ARCHITECTURE.md) | Detailed component breakdown |
+| [Agent Architecture](docs/agent-architecture.md) | How the AI agent works |
+| [Production Journey](docs/production-journey.md) | Lessons learned |
+
+---
+
+## ✨ Features
+
+- 🕵️ **Root Cause Analysis** - AI-powered investigation that finds the real cause
+- 🗺️ **Topology Discovery** - Understands service dependencies before investigating
+- 📊 **Real-time Dashboard** - Watch the agent think and investigate
+- 💬 **Slack Integration** - Automatic incident reports to your team
+- 🐛 **GitHub Issues** - Creates detailed incident issues with runbooks
+- 📈 **Metrics & Logs** - Full observability with Prometheus, Loki, Grafana
+- ⚡ **Fast Response** - From detection to diagnosis in under 2 minutes
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Anthropic](https://anthropic.com) - Claude Agent SDK
+- [Model Context Protocol](https://github.com/modelcontextprotocol) - MCP standard
+- [Grafana Labs](https://grafana.com) - Loki, Tempo, Grafana
+- [Prometheus](https://prometheus.io) - Metrics collection
+
+---
+
+**Built with 💜 by the el Agénte Team**

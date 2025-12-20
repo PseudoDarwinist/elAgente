@@ -47,3 +47,55 @@ scrape_configs:
         labels:
           job: aura-backend
           __path__: /var/log/aura-backend/*.log
+
+  - job_name: postgres-mock-logs
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            service: service
+            msg: message
+            error: error
+      - labels:
+          level:
+          service:
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: postgres-mock
+          __path__: /var/log/postgres-mock/*.log
+
+  - job_name: redis-mock-logs
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            service: service
+            msg: message
+            error: error
+      - labels:
+          level:
+          service:
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: redis-mock
+          __path__: /var/log/redis-mock/*.log
+
+  - job_name: stripe-mock-logs
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level
+            service: service
+            msg: message
+            error: error
+      - labels:
+          level:
+          service:
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: stripe-mock
+          __path__: /var/log/stripe-mock/*.log
+

@@ -310,3 +310,424 @@ AGENT_WORKER_URL=http://agent-worker:3005
 
 **Key Insight**:
 The self-hosted LLM (`quasarmarket.coforge.com`) gets stuck in tool loops. Claude via Agent SDK solves this with proper multi-step reasoning.
+
+---
+
+## 📅 December 7-8, 2025 Session — Downtime Cost Feature
+
+### New Feature: Revenue Impact Split-View (Aura App)
+
+Created a dramatic split-view UI that shows real-time business impact when checkout errors occur:
+
+**Left Panel (60%)**: Dimmed checkout with error overlay
+**Right Panel (40%)**: Revenue Impact Dashboard showing:
+- 💰 Revenue loss counter ($93.33/sec based on ITIC $5,600/min stat)
+- ⏱️ Elapsed time timer
+- 📈 Live revenue loss graph
+- 📊 Industry benchmark callout
+- 🤖 SRE Agent pipeline status
+
+**Files Created**:
+| File | Purpose |
+|------|---------|
+| `aura-quiet-living/components/RevenueImpactDashboard.tsx` | Dashboard with animated counter, timer, graph |
+| `aura-quiet-living/components/ErrorSplitView.tsx` | Split-view layout wrapper |
+
+**Files Modified**:
+| File | Change |
+|------|--------|
+| `aura-quiet-living/components/Checkout.tsx` | Error state handling, retry logic, SRE status simulation |
+| `aura-quiet-living/index.html` | CSS animations (slide-in-right, pulse-glow) |
+
+### Fixed: Alert Storm / Slack Spam
+
+**Problem**: Grafana alerts triggered repeated diagnoses, spamming Slack.
+
+**Fixes Applied**:
+| Change | File | Before → After |
+|--------|------|----------------|
+| Cooldown | `.env` | 60s → **600s (10 min)** |
+| Skip RESOLVED | `client.py` | Added filter for `[RESOLVED]` alerts |
+| Group interval | `policies.yaml` | 30s → **5 min** |
+| Repeat interval | `policies.yaml` | 1h → **4 hours** |
+
+### Docker Rebuilds
+- `sre-agent-aura-frontend-1` — With split-view feature
+- `sre-agent-orchestrator-1` — With RESOLVED skip + 10min cooldown
+
+### Quick Commands
+```bash
+# Inject fault
+curl -X POST http://localhost:4000/api/admin/fault -H "Content-Type: application/json" -d '{"error_rate": 1.0}'
+
+# Clear fault
+curl -X POST http://localhost:4000/api/admin/fault -H "Content-Type: application/json" -d '{"error_rate": 0}'
+
+# Rebuild aura frontend
+docker compose -f compose.local.yaml build aura-frontend --no-cache && docker compose -f compose.local.yaml up -d aura-frontend
+
+# Start SRE Dashboard
+cd sre-dashboard && npm run dev
+```
+
+### Key URLs
+| Service | URL |
+|---------|-----|
+| Aura E-Commerce | http://localhost:8080 |
+| SRE Dashboard | http://localhost:3001 |
+| Grafana | http://localhost:3000 |
+| Orchestrator | http://localhost:8003 |
+
+### Next: UI/UX Improvements for Hackathon
+- Make SRE Dashboard more visually dramatic
+- Add real-time log streaming visualization
+- Add progress animations for chain of thought
+- Create "demo mode" for one-click full flow
+
+---
+
+## 📅 December 8, 2025 Session — Dashboard Fixes + Semi-Finals Prep
+
+### 🎉 REACHED SEMI-FINALS!
+
+**Presentation Date**: December 12, 2025 (Online)
+**Time Limit**: 12 minutes (strict)
+
+---
+
+### Fixes Applied This Session
+
+#### 1. Agent-Worker Event Streaming
+**Problem**: Dashboard only showed 2 steps (init/complete), no intermediate events.
+
+**Solution**: Updated `agent-worker/src/index.ts` to emit granular events:
+- `connecting_servers` / `servers_connected`
+- `tool_call` (with tool name and args)
+- `tool_result` (with preview)
+- `llm_response` (with analysis preview)
+- `analysis_complete` (with tool count)
+- `complete` (with full report)
+
+**File Changed**: `sre_agent/agent-worker/src/index.ts`
+
+#### 2. Orchestrator Event Forwarding
+**Problem**: Orchestrator didn't forward agent-worker events to dashboard.
+
+**Solution**: Added code to forward events from agent-worker response to SSE stream.
+
+**File Changed**: `sre_agent/client/client.py` (lines 618-621)
+```python
+worker_events = data.get("events", [])
+for event in worker_events:
+    if run_id and event.get("event_type"):
+        emit_event(run_id, event["event_type"], event.get("data", {}))
+```
+
+#### 3. RCA Report Truncation Fix
+**Problem**: Report was cut off at 2000 characters.
+
+**Solution**: Increased limit from 2000 → 10000 in three places:
+- `agent-worker/src/index.ts` line 238
+- `client.py` line 626
+- `client.py` line 716
+
+#### 4. Terminal Log Fix
+**Problem**: Terminal showed "Waiting for logs..." even when logs existed.
+
+**Solution**: Updated `page.tsx` to use `preview` field:
+```typescript
+const logData = lastEvent.data.response || lastEvent.data.preview;
+```
+
+**File Changed**: `sre-dashboard/src/app/page.tsx` (lines 54-56)
+
+#### 5. Claude Agent SDK Connection
+**Problem**: Docker orchestrator couldn't reach local agent-worker.
+
+**Solution**: Changed `.env`:
+```
+AGENT_WORKER_URL=http://host.docker.internal:3005
+```
+
+---
+
+### How to Run the Current Setup
+
+```bash
+# 1. Start Docker services
+cd /Users/chetansingh/Documents/Hackathon/sre-agent
+docker compose -f compose.local.yaml up -d
+
+# 2. Start Agent Worker (LOCAL - required!)
+cd sre_agent/agent-worker
+LOKI_MCP_URL=http://localhost:3103/sse \
+SLACK_MCP_URL=http://localhost:3101/sse \
+GITHUB_MCP_URL=http://localhost:3102/sse \
+PORT=3005 npx tsx src/index.ts
+
+# 3. Start SRE Dashboard (separate terminal)
+cd sre-dashboard
+npm run dev
+
+# 4. Test the demo
+curl -X POST http://localhost:4000/api/admin/fault \
+  -H "Content-Type: application/json" -d '{"error_rate": 1.0}'
+
+# 5. Go to http://localhost:8080 and trigger checkout error
+# 6. Watch http://localhost:3001 for real-time diagnosis
+
+# 7. Clear fault when done
+curl -X POST http://localhost:4000/api/admin/fault \
+  -H "Content-Type: application/json" -d '{"error_rate": 0}'
+```
+
+---
+
+## 🏆 Semi-Finals Enhancement Plan
+
+### Your Story (Hero's Journey)
+
+| Stage | Script |
+|-------|--------|
+| **Hook** | "Every minute of downtime costs $5,600. What if AI could fix issues before your team wakes up?" |
+| **Context** | "Modern enterprises run complex microservices. When something breaks at 3 AM, SREs scramble to find the needle in a haystack." |
+| **Challenge** | "Traditional monitoring shows WHAT failed, not WHY. Engineers spend 70% of incident time gathering context." |
+| **Response** | "Our SRE Agent investigates like a senior engineer—gathering logs, forming hypotheses, generating runbooks." |
+| **Result** | "MTTR from hours to minutes. Complete RCA documentation. No more 3 AM wake-up calls." |
+
+### 12-Minute Demo Script
+
+```
+0:00-0:30   Hook + Problem Statement
+0:30-1:30   Pain Point Demo (fault injection, split-view)
+1:30-2:00   Introduce the Solution
+2:00-6:00   Live Agent Demo (dashboard streaming)
+6:00-8:00   Walkthrough RCA Report
+8:00-9:30   Technical Deep-Dive (30%)
+9:30-11:00  Business Impact
+11:00-12:00 Closing + Q&A Setup
+```
+
+### UI/UX Enhancements To Implement
+
+#### Priority 1: Demo Mode Button
+- [ ] Add one-click "START DEMO" button to SRE Dashboard
+- [ ] Auto-inject fault
+- [ ] Auto-trigger checkout error
+- [ ] Auto-focus on diagnosis stream
+
+#### Priority 2: RCA Report Fix
+- [ ] Make report scrollable
+- [ ] Add Markdown rendering
+- [ ] Collapsible sections
+- [ ] Copy-to-clipboard button
+
+#### Priority 3: Pipeline Animations
+- [ ] Animated flow lines between stages
+- [ ] Particle effects
+- [ ] Pulsing glow on active stage
+- [ ] Connection animation
+
+#### Priority 4: Terminal Enhancement
+- [ ] Typing animation effect
+- [ ] Syntax highlighting for log levels
+- [ ] Error lines in red
+- [ ] Auto-scroll with tail effect
+
+#### Priority 5: Metrics Dashboard
+- [ ] Real-time MTTR counter
+- [ ] Cost saved calculator
+- [ ] Before/After comparison
+
+#### Priority 6: Sound Effects (Optional)
+- [ ] Alert sound on incident
+- [ ] "Ding" on resolution
+
+---
+
+### Key Talking Points for Judges
+
+> "Traditional monitoring tells you WHAT failed. Our agent tells you WHY."
+
+> "From alert to RCA in under 2 minutes, not 2 hours."
+
+> "$5,600/minute × 60 min average MTTR = $336,000 per incident saved."
+
+> "Agent creates GitHub issues and Slack posts—team wakes up to solutions, not problems."
+
+---
+
+### Files Modified This Session
+
+| File | Change |
+|------|--------|
+| `sre_agent/agent-worker/src/index.ts` | Granular event emission, 10000 char limit |
+| `sre_agent/client/client.py` | Event forwarding, 10000 char limit |
+| `sre-dashboard/src/app/page.tsx` | Use `preview` field for terminal logs |
+| `.env` | `AGENT_WORKER_URL=http://host.docker.internal:3005` |
+
+---
+
+## 📅 December 8, 2025 Afternoon Session — Semi-Finals Enhancements
+
+### ✅ Priority 1: Demo Mode Button (COMPLETED)
+
+Created one-click demo button for the SRE Dashboard:
+
+**New Component**: `sre-dashboard/src/app/components/DemoModeButton.tsx`
+
+| State | Label | Action |
+|-------|-------|--------|
+| `idle` | 🚀 START DEMO | Click to inject fault and open Aura shop |
+| `injecting` | ⚡ INJECTING... | Calling `/api/admin/fault` |
+| `active` | 🔴 FAULT ACTIVE | Fault injected, opens Aura shop in new tab |
+| `diagnosing` | 🔍 AI ANALYZING | Dashboard detected diagnosis, Claude working |
+| `done` | ✅ COMPLETE | Fault auto-cleared after diagnosis |
+
+**Demo Flow**:
+```
+Click START DEMO → Aura opens in new tab → User checkouts → Error! → 
+Grafana fires alert → Dashboard auto-subscribes → AI diagnoses → 
+Posted to Slack → GitHub issue created → COMPLETE
+```
+
+**Files Created/Modified**:
+| File | Change |
+|------|--------|
+| `sre-dashboard/src/app/components/DemoModeButton.tsx` | **[NEW]** Neo-Brutalism styled button component |
+| `sre-dashboard/src/app/page.tsx` | Import and add button to header |
+
+---
+
+### ✅ GitHub Integration Fixed
+
+**Problem**: Claude was trying to create issues on `anthropics/oncall` instead of user's repo.
+
+**Solution**: Added environment variables and updated prompt with explicit `owner` and `repo` parameters.
+
+**Changes to `agent-worker/src/index.ts`**:
+```typescript
+// Added env vars
+const GITHUB_OWNER = process.env.GITHUB_ORGANISATION || 'PseudoDarwinist';
+const GITHUB_REPO = process.env.GITHUB_REPO_NAME || 'elAgente';
+
+// Updated prompt STEP 5:
+// Call \`create_issue\` with EXACTLY these parameters:
+// - owner: "${GITHUB_OWNER}"
+// - repo: "${GITHUB_REPO}"
+```
+
+**Verification**: Successfully created [Issue #2](https://github.com/PseudoDarwinist/elAgente/issues/2) on user's repo!
+
+---
+
+### ✅ Grafana Alerting Speedup
+
+**Problem**: `group_interval: 5m` caused alerts to only fire every 5 minutes.
+
+**Solution**: Updated `observability/grafana/provisioning/alerting/policies.yaml`:
+
+| Setting | Before | After |
+|---------|--------|-------|
+| `group_wait` | 30s | 10s |
+| `group_interval` | 5m | 30s |
+| `repeat_interval` | 4h | 2m |
+
+**Result**: Demo cycles are now faster (~30 seconds instead of 5 minutes).
+
+---
+
+### ✅ End-to-End Flow Verified
+
+Successfully tested the complete flow:
+
+1. **Demo Button clicked** → Fault injected (error_rate=1.0)
+2. **Aura Shop opened** → User triggers checkout
+3. **Error logged** → GatewayTimeout errors in Loki
+4. **Grafana alert fires** → Webhook to orchestrator
+5. **Orchestrator calls agent-worker** → Claude SDK starts
+6. **Claude analyzes real logs** → Identified 21 GatewayTimeout errors
+7. **RCA generated** with 95% confidence
+8. **Posted to Slack** (Channel C095S2NQQMV)
+9. **GitHub Issue #2 created** on PseudoDarwinist/elAgente
+10. **Dashboard shows complete flow** with Chain of Thought
+
+**Proof of Real AI Analysis** (not hardcoded):
+- Claude counted **21 GatewayTimeout errors** in logs
+- Identified **Stripe provider** as the failing component
+- Generated **unique timestamps and transaction IDs** from actual logs
+- Created **custom runbook** based on error pattern
+
+---
+
+### Quick Commands (Updated)
+
+```bash
+# Start all Docker services
+cd /Users/chetansingh/Documents/Hackathon/sre-agent
+docker compose -f compose.local.yaml up -d
+
+# Start Agent Worker (LOCAL - required!)
+cd sre_agent/agent-worker
+LOKI_MCP_URL=http://localhost:3103/sse \
+SLACK_MCP_URL=http://localhost:3101/sse \
+GITHUB_MCP_URL=http://localhost:3102/sse \
+GITHUB_ORGANISATION=PseudoDarwinist \
+GITHUB_REPO_NAME=elAgente \
+PORT=3005 npx tsx src/index.ts
+
+# Start SRE Dashboard
+cd sre-dashboard && npm run dev
+
+# Open Dashboard at http://localhost:3001
+# Click "START DEMO" button
+# Go to Aura shop (opens automatically) and checkout
+# Watch the magic happen!
+```
+
+---
+
+### Remaining Priorities
+
+#### Priority 2: RCA Report Fix
+- [ ] Make report scrollable
+- [ ] Add Markdown rendering
+- [ ] Collapsible sections
+- [ ] Copy-to-clipboard button
+
+#### Priority 3: Pipeline Animations
+- [ ] Animated flow lines between stages
+- [ ] Particle effects
+- [ ] Pulsing glow on active stage
+
+#### Priority 4: Terminal Enhancement
+- [ ] Typing animation effect
+- [ ] Syntax highlighting for log levels
+- [ ] Error lines in red
+- [ ] Auto-scroll with tail effect
+
+#### Priority 5: Metrics Dashboard
+- [ ] Real-time MTTR counter
+- [ ] Cost saved calculator
+
+#### Priority 6: Sound Effects (Optional)
+- [ ] Alert sound on incident
+- [ ] "Ding" on resolution
+
+---
+
+### Key Talking Points for Judges
+
+> "Traditional monitoring tells you WHAT failed. Our agent tells you WHY."
+
+> "From alert to RCA in under 2 minutes, not 2 hours."
+
+> "$5,600/minute × 60 min average MTTR = $336,000 per incident saved."
+
+> "Agent creates GitHub issues and Slack posts—team wakes up to solutions, not problems."
+
+---
+
+**Last Updated**: 2025-12-08T18:32:00+05:30
+**Status**: Priority 1 (Demo Mode Button) ✅ COMPLETED
+

@@ -1,18 +1,27 @@
 {
-  "name": "backend",
+  "name": "aura-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Aura Quiet Living Backend with OpenTelemetry",
+  "main": "server.js",
   "scripts": {
+    "start": "node -r ./tracing.js server.js",
+    "start:no-tracing": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["sre", "observability", "opentelemetry"],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
     "express": "^5.2.1",
-    "winston": "^3.18.3"
+    "winston": "^3.18.3",
+    "@opentelemetry/sdk-node": "^0.52.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.47.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.52.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.52.0",
+    "@opentelemetry/sdk-metrics": "^1.25.0",
+    "@opentelemetry/resources": "^1.25.0",
+    "@opentelemetry/semantic-conventions": "^1.25.0"
   }
 }

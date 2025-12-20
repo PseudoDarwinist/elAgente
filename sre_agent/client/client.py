@@ -612,12 +612,18 @@ async def run_diagnosis_and_post(service: str, alert_context: str | None = None,
             if not data.get("success"):
                 raise RuntimeError(data.get("error") or "agent-worker returned failure")
 
+            # Forward events from agent-worker to dashboard
+            worker_events = data.get("events", [])
+            for event in worker_events:
+                if run_id and event.get("event_type"):
+                    emit_event(run_id, event["event_type"], event.get("data", {}))
+
             report = data.get("report", "")
             if run_id:
                 emit_event(run_id, "complete", {
                     "status": "success",
                     "message": "Diagnosis completed via agent-worker",
-                    "response": report[:2000],
+                    "response": report[:10000],
                 })
 
             try:
@@ -707,7 +713,7 @@ async def run_diagnosis_and_post(service: str, alert_context: str | None = None,
                     emit_event(run_id, "complete", {
                         "status": "success",
                         "message": "Diagnosis completed",
-                        "response": result["response"][:2000],
+                        "response": result["response"][:10000],
                         "token_usage": result["token_usage"],
                         "duration": result["timing"]["total_duration"]
                     })
@@ -832,6 +838,16 @@ async def alerts(request: Request, background_tasks: BackgroundTasks) -> JSONRes
     alert_context = "\n".join(context_lines)
 
     logger.info(f"Received alert for service={service}. Triggering diagnosis.")
+    
+    # Skip resolved alerts - these are informational only, not new incidents
+    alert_status = payload.get("status", "").lower()
+    if alert_status == "resolved" or "[RESOLVED]" in title:
+        logger.info(f"Skipping resolved alert for service={service}. Title: {title}")
+        return JSONResponse(
+            status_code=HTTPStatus.OK,
+            content={"status": "skipped", "reason": "resolved", "service": service},
+        )
+    
     # Simple cooldown to avoid incident storms
     cooldown = int(os.getenv("ALERT_COOLDOWN_SECONDS", "120") or "120")
     now = time.time()
